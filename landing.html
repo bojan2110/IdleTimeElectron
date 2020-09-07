@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src https://health-iot.labs.vu.nl">
+    <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src https://health-iot.labs.vu.nl">
+    <title>Hello World!</title>
+  </head>
+  <body>
+    <h1> Events: <span id="event">No new event</span></h1>
+    <h1> Current State: <span id="state"></span></h1>
+    <h1> Idle time: <span id="idletime"></span></h1>
+
+    <!-- You can also require other files to run in this process -->
+    <script src="./landing.js"></script>
+  </body>
+</html>
