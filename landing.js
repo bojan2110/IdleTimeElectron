@@ -3,14 +3,15 @@ const date = require('date-and-time');
 const axios = require('axios');
 const fs = require('fs')
 const path = require('path');
+const os = require('os');
 
-
+//read the username first and then start the data collection
 
 const jsonfile = path.join(__dirname,'./electronuser.json')
-//read the username first and then start the data collection
+
 fs.readFile(jsonfile, 'utf8', (err, userString) => {
     if (err) {
-        console.log("Error reading file from disk:", err)
+        console.log("Error reading json file from disk:", err)
         return
     }
     try {
@@ -25,6 +26,11 @@ fs.readFile(jsonfile, 'utf8', (err, userString) => {
 
 function monitorState(username)
 {
+
+    const computerName = os.hostname() + ' ' + os.type()
+    
+    console.log('computerName ' + computerName)
+
       electron.powerMonitor.on('suspend', () => {
          now = new Date();
           console.log(date.format(now, 'YYYY/MM/DD HH:mm:ss') +' The system is going to sleep');
@@ -78,7 +84,7 @@ function monitorState(username)
 
       var intervalID = setInterval(function(){
         now = new Date();
-        console.log(electron)
+        // console.log(electron)
         const idle = electron.powerMonitor.getSystemIdleTime();
         console.log(date.format(now, 'YYYY/MM/DD HH:mm:ss') +' Current System Idle Time - ', idle + ' Username ' + username);
 

@@ -9,9 +9,6 @@ const TrayGenerator = require('./TrayGenerator');
 const {app, BrowserWindow } = electron
 const path = require('path')
 
-
-
-
 //required so that app can start on device launch
 var AutoLaunch = require('auto-launch');
 var autoLauncher = new AutoLaunch({
@@ -40,11 +37,11 @@ function createWindow () {
     show: false,
     frame: false,
     fullscreenable: false,
-    resizable: false
+    resizable: true
   })
 
  mainWindow.loadFile('login.html')
- mainWindow.webContents.openDevTools
+ mainWindow.webContents.openDevTools()
  mainWindow.on('restore', () => {
      console.log('mainWindow restore')
      mainWindow.show();
@@ -60,7 +57,6 @@ function createWindow () {
  })
 
 }
-
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.

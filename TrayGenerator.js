@@ -32,9 +32,10 @@ class TrayGenerator {
        app.dock.hide();
 
      } else {
-
        this.showWindow();
        app.dock.hide();
+       this.mainWindow.show();
+
      }
   };
 
