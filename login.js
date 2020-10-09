@@ -31,12 +31,19 @@ fs.readFile(jsonfile, 'utf8', (err, userString) => {
 
             loginButton.addEventListener("click", (e) => {
                 e.preventDefault();
-                const email = loginForm.email.value;
-                const confirmemail = loginForm.confirmemail.value;
+                var email = loginForm.email.value;
+                var confirmemail = loginForm.confirmemail.value;
+                console.log('button clicked')
+                console.log(email + ' confirm: ' + confirmemail)
 
                 //first check that both fields have text
-                if(email & confirmemail)
+                if(email === '' & confirmemail === '')
                 {
+                  document.getElementById("login-error-msg").innerText = 'Please enter email'
+                  document.getElementById("login-error-msg").style.opacity = 1;
+                  console.log('no text in fields')
+                }
+                else{
                   //check if its valid email
                   if (validateEmail(email) & validateEmail(confirmemail)) {
                     if (email ===  confirmemail ) {
@@ -76,14 +83,6 @@ fs.readFile(jsonfile, 'utf8', (err, userString) => {
 
                       document.getElementById("login-error-msg").style.opacity = 1;
                   }
-
-                }
-                else{
-
-                  document.getElementById("login-error-msg").innerText = 'Please fill-in the email'
-                  document.getElementById("login-error-msg").style.opacity = 1;
-
-                  console.log('no text in fields')
 
                 }
             })

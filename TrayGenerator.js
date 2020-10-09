@@ -1,5 +1,6 @@
 const { app, Tray, Menu } = require('electron');
 const path = require('path');
+const { ipcMain } = require('electron');
 
 class TrayGenerator {
 
@@ -9,6 +10,8 @@ class TrayGenerator {
   }
 
   getWindowPosition = () => {
+    // console.log('getWindowPosition')
+
     const windowBounds = this.mainWindow.getBounds();
     const trayBounds = this.tray.getBounds();
     const x = Math.round(trayBounds.x + (trayBounds.width / 2) - (windowBounds.width / 2));
@@ -17,6 +20,9 @@ class TrayGenerator {
   };
 
   showWindow = () => {
+    // console.log('showWindow')
+    this.mainWindow.webContents.send('MSG_SHOW_PLOT', 'showPlot');
+
     const position = this.getWindowPosition();
     this.mainWindow.setPosition(position.x, position.y, false);
     this.mainWindow.show();
@@ -26,6 +32,8 @@ class TrayGenerator {
   };
 
   toggleWindow = () => {
+    // console.log('toggleWindow')
+
     if (this.mainWindow.isVisible()) {
 
        this.mainWindow.hide();
