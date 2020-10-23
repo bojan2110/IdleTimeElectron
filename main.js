@@ -4,6 +4,8 @@ const date = require('date-and-time');
 const axios = require('axios');
 const fs = require('fs')
 const { is } = require('electron-util');
+const os = require('os');
+const { ipcMain } = require('electron')
 const TrayGenerator = require('./TrayGenerator');
 
 const {app, BrowserWindow } = electron
@@ -56,6 +58,17 @@ function createWindow () {
      // mainWindow.setSkipTaskbar(true)
  })
 
+ mainWindow.on('close', (event) => {
+   if (mainWindow) {
+      console.log('sent app-close to renderer')
+      event.preventDefault();
+      mainWindow.webContents.send('app-close');
+    }
+   // event.preventDefault();
+   // mainWindow.hide();
+   //   // mainWindow.setSkipTaskbar(true)
+ })
+
 }
 
 // This method will be called when Electron has finished
@@ -63,7 +76,7 @@ function createWindow () {
 // Some APIs can only be used after this event occurs.
 let Tray = null
 app.whenReady().then(() => {
-
+  console.log('Electron starting')
   createWindow();
   Tray = new TrayGenerator(mainWindow);
   Tray.createTray();
@@ -77,10 +90,41 @@ app.whenReady().then(() => {
 
 app.dock.hide();
 
+ipcMain.on('closed', _ => {
+  console.log('renderer executed')
+  mainWindow = null
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
+
+
+
+async function makePostRequest(username,computerName) {
+  try{
+    now = new Date();
+    let res = await axios.post('https://health-iot.labs.vu.nl/api/idlestate/event',
+      {
+        userid: username,
+        deviceid: computerName,
+        collectionTime: Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000),
+        eventid: 1
+      }
+    );
+
+    console.log(res.data);
+  } catch (err) {
+        // Handle Error Here
+        console.error(err);
+    }
+}
+
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
+
 app.on('window-all-closed', function () {
+  console.log('closing electron')
   if (process.platform !== 'darwin') app.quit()
 })
 

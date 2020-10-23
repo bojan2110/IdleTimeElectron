@@ -9,6 +9,9 @@ class TrayGenerator {
     this.mainWindow = mainWindow;
   }
 
+
+
+
   getWindowPosition = () => {
     // console.log('getWindowPosition')
 
@@ -22,7 +25,6 @@ class TrayGenerator {
   showWindow = () => {
     // console.log('showWindow')
     this.mainWindow.webContents.send('MSG_SHOW_PLOT', 'showPlot');
-
     const position = this.getWindowPosition();
     this.mainWindow.setPosition(position.x, position.y, false);
     this.mainWindow.show();
@@ -46,6 +48,13 @@ class TrayGenerator {
 
      }
   };
+
+  closeWindow = () => {
+    // console.log('toggleWindow')
+
+    this.mainWindow.close()
+  };
+
 
   rightClickMenu = () => {
     const menu = [
