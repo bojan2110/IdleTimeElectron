@@ -92,10 +92,11 @@ app.dock.hide();
 
 ipcMain.on('closed', _ => {
   console.log('renderer executed')
+  app.quit();
+
   mainWindow = null
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  // if (process.platform !== 'darwin') {
+  // }
 });
 
 
@@ -125,7 +126,8 @@ async function makePostRequest(username,computerName) {
 
 app.on('window-all-closed', function () {
   console.log('closing electron')
-  if (process.platform !== 'darwin') app.quit()
+  if (process.platform !== 'darwin')
+      app.quit()
 })
 
 // In this file you can include the rest of your app's specific main process

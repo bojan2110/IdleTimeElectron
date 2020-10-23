@@ -8,28 +8,7 @@ const { ipcRenderer } = window.require('electron');
 var Chart = require('chart.js');
 
 //read the username first and then start the data collection
-async function makePostRequest(username,computerName,eventid) {
-  try{
-    now = new Date();
-    let res = await axios.post('https://health-iot.labs.vu.nl/api/idlestate/event',
-      {
-        userid: username,
-        deviceid: computerName,
-        collectionTime: Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000),
-        eventid: eventid
-      }
-    );
-
-    console.log(res.data);
-  } catch (err) {
-        // Handle Error Here
-        console.error(err);
-    }
-}
-
-
 const jsonfile = path.join(__dirname,'./electronuser.json')
-
 fs.readFile(jsonfile, 'utf8', (err, userString) => {
     if (err) {
         console.log("Error reading json file from disk:", err)
@@ -52,6 +31,25 @@ fs.readFile(jsonfile, 'utf8', (err, userString) => {
       }
 })
 
+async function makePostRequest(username,computerName,eventid) {
+  try{
+    now = new Date();
+    let res = await axios.post('https://health-iot.labs.vu.nl/api/idlestate/event',
+      {
+        userid: username,
+        deviceid: computerName,
+        collectionTime: Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000),
+        eventid: eventid
+      }
+    );
+
+    console.log(res.data);
+  } catch (err) {
+        // Handle Error Here
+        console.error(err);
+    }
+}
+
 function ipcRendererEvents(username,computerName){
   console.log('Registering ipc render events')
   //Display latest idle state data
@@ -73,21 +71,16 @@ function ipcRendererEvents(username,computerName){
         var intervals = response.data.intervals
         var timeArray2 = []
         var stateArray = []
-        var chartData = []
         for (i in intervals){
-          chartData.push({
-          "x" : intervals[i].collectionTime,
-          "y"  : intervals[i].idleTime})
-          // timeArray2.push(new Date(intervals[i].collectionTime*1000).getHours()+':'+new Date(intervals[i].collectionTime*1000).getMinutes())
           var d = new Date(intervals[i].collectionTime*1000)
           // timeArray2.push(new Date(intervals[i].collectionTime*1000).toLocaleTimeString('it-IT'))
           timeArray2.push(d.getUTCHours() + ":" + d.getUTCMinutes())
-          console.log(new Date(intervals[i].collectionTime*1000).getUTCHours(),intervals[i].collectionTime)
+          // console.log(new Date(intervals[i].collectionTime*1000).getUTCHours(),intervals[i].collectionTime)
           stateArray.push(intervals[i].idleTime)
         }
-        console.log(apiCall)
-        console.log(timeArray2);
-        console.log(stateArray);
+        // console.log(apiCall)
+        // console.log(timeArray2);
+        // console.log(stateArray);
 
         //no daily data to show on the plot
         if(timeArray2.length == 0 || stateArray.length == 0)
@@ -189,7 +182,6 @@ function createDailyChart(stateArray,timeArray){
                           });
 
 }
-
 
 function postAdditionalComputerStates(username,computerName){
   console.log('Registering Additional Computer States...')
@@ -357,54 +349,50 @@ function postAdditionalComputerStates(username,computerName){
 }
 
 
-function monitorDailyState(username,computerName)
-{
-
-
+function monitorDailyState(username,computerName){
     console.log('Monitoring daily state...')
+    // posting state changes
+    // threshold in seconds for changing states
+    const idleThreshold = 20
+    var last_state = ''
+    var current_state = ''
+    var idleState = -1
 
-      // posting state changes
-      // threshold in seconds for changing states
-      const idleThreshold = 20
-      var last_state = ''
-      var current_state = ''
-      var idleState = -1
+    setInterval(function(){
+        now = new Date();
+        // in case you want to have the actual idle time
+        // const idle = electron.powerMonitor.getSystemIdleTime();
+        // console.log(date.format(now, 'YYYY/MM/DD HH:mm:ss') +' Current System Idle Time - ', idle);
+        // var idletime = document.getElementById("idletime");
+        // idletime.innerText = idle
+        const st = electron.powerMonitor.getSystemIdleState(idleThreshold);
+        // document.getElementById("state").innerText = st
+        current_state = st
 
-      setInterval(function(){
-          now = new Date();
-          // in case you want to have the actual idle time
-          // const idle = electron.powerMonitor.getSystemIdleTime();
-          // console.log(date.format(now, 'YYYY/MM/DD HH:mm:ss') +' Current System Idle Time - ', idle);
-          // var idletime = document.getElementById("idletime");
-          // idletime.innerText = idle
-          const st = electron.powerMonitor.getSystemIdleState(idleThreshold);
-          // document.getElementById("state").innerText = st
-          current_state = st
+        if(current_state == 'active')
+          idleState = 1
+        else
+          idleState = 0
 
-          if(current_state == 'active')
-            idleState = 1
-          else
-            idleState = 0
+        console.log(date.format(now, 'YYYY/MM/DD HH:mm:ss') +' Current System State - ', st, idleState , Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000),username,computerName);
 
-          console.log(date.format(now, 'YYYY/MM/DD HH:mm:ss') +' Current System State - ', st, idleState , Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000),username,computerName);
+        if(last_state != current_state){
+            axios.post('https://health-iot.labs.vu.nl/api/idlestate/post',
+              {
+                userid: username,
+                deviceid: computerName,
+                collectionTime: Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000),
+                idleTime: idleState
+              }
+            )
+            .then((response) => {
+              console.log('POST OK');
+            }, (error) => {
+              console.log(error);
+            });
 
-          if(last_state != current_state){
-              axios.post('https://health-iot.labs.vu.nl/api/idlestate/post',
-                {
-                  userid: username,
-                  deviceid: computerName,
-                  collectionTime: Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000),
-                  idleTime: idleState
-                }
-              )
-              .then((response) => {
-                console.log('POST OK');
-              }, (error) => {
-                console.log(error);
-              });
-
-              last_state = current_state
-          }
-        }, 5000);
+            last_state = current_state
+        }
+      }, 5000);
 
   }
