@@ -29,8 +29,8 @@ let mainWindow = null;
 function createWindow () {
   // Create the browser window.
  mainWindow = new BrowserWindow({
-    width: 250,
-    height: 450,
+    width: 350,
+    height: 750,
     webPreferences: {
       nodeIntegration : true,
       worldSafeExecuteJavaScript: true,
@@ -39,7 +39,7 @@ function createWindow () {
     show: false,
     frame: false,
     fullscreenable: false,
-    resizable: true
+    resizable: false
   })
 
  mainWindow.loadFile('login.html')
@@ -120,12 +120,59 @@ async function makePostRequest(username,computerName) {
     }
 }
 
+
+function saveCloseState(place){
+  const jsonfile = path.join(__dirname,'./electronuser.json')
+
+  fs.readFile(jsonfile, 'utf8', (err, userString) => {
+      if (err) {
+          console.log("Error reading file from disk:", err)
+          return
+      }
+      try {
+            var now = new Date();
+            var user = JSON.parse(userString)
+            user.login = true
+            user.username = user.username
+            user.appClosingTime = Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000)
+            user.functionPlace = place
+            fs.writeFile(jsonfile, JSON.stringify(user), (err) => {
+                    if (err)
+                    {
+                      console.log('Error writing file:', err)
+                    }
+                    // else{
+                    //   location.href = 'landing.html'
+                    // }
+            })
+            //
+            // ipcRenderer.send('closed');
+          }
+     catch(err) {
+            console.log('Error parsing JSON string:', err)
+        }
+  })
+
+}
+
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 
+app.on('before-quit', function () {
+
+  saveCloseState("before-quit")
+
+})
+
+
 app.on('window-all-closed', function () {
   console.log('closing electron')
+
+
+  saveCloseState("window-all-closed")
+
+
   if (process.platform !== 'darwin')
       app.quit()
 })
