@@ -7,6 +7,13 @@ const os = require('os');
 const { ipcRenderer } = window.require('electron');
 var Chart = require('chart.js');
 
+//de chart
+var myChart
+//de data
+var intervals
+
+
+
 //read the username first and then start the data collection
 const jsonfile = path.join(__dirname,'./electronuser.json')
 fs.readFile(jsonfile, 'utf8', (err, userString) => {
@@ -74,6 +81,8 @@ async function appClosePost(username,computerName,time) {
     }
 }
 
+
+
 function ipcRendererEvents(username,computerName){
   console.log('Registering ipc render events')
   //Display latest idle state data
@@ -94,30 +103,15 @@ function ipcRendererEvents(username,computerName){
     axios.get(apiCall)
       .then(function (response) {
         // handle success
-        // console.log(response.data.intervals);
-        var intervals = response.data.intervals
-        var timeArray2 = []
-        var collectionTimeArray = []
-        var stateArray = []
-        for (i in intervals){
-          collectionTimeArray.push(intervals[i].collectionTime)
-          var d = new Date(intervals[i].collectionTime*1000)
-          // timeArray2.push(new Date(intervals[i].collectionTime*1000).toLocaleTimeString('it-IT'))
-          timeArray2.push(d.getUTCHours() + ":" + d.getUTCMinutes())
-          // console.log(new Date(intervals[i].collectionTime*1000).getUTCHours(),intervals[i].collectionTime)
-          stateArray.push(intervals[i].idleTime)
-        }
-        // console.log(apiCall)
-        // console.log(timeArray2);
-        // console.log(stateArray);
-
+          intervals = response.data.intervals
         //no daily data to show on the plot
-        if(timeArray2.length == 0 || stateArray.length == 0)
+        if(intervals.length == 0)
         {
 
         }
         else{
-            createDailyChart(stateArray,timeArray2,collectionTimeArray,intervals)
+            createDailyChart(intervals)
+            fillCards(intervals)
         }
 
 
@@ -172,111 +166,6 @@ Date.prototype.getUTCTime = function(){
   return this.getTime()-(this.getTimezoneOffset()*60000);
 };
 
-function amchart(){
-  // Themes begin
-  am4core.useTheme(am4themes_dataviz);
-  am4core.useTheme(am4themes_animated);
-  // Themes end
-
-  // Create chart instance
-  var chart = am4core.create("chartdiv", am4charts.XYChart);
-
-  // Add data
-  chart.data = generateChartData();
-
-  // Create axes
-  var dateAxis = chart.xAxes.push(new am4charts.DateAxis());
-
-  var valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
-
-  // Create series
-  var series = chart.series.push(new am4charts.LineSeries());
-  series.dataFields.valueY = "visits";
-  series.dataFields.dateX = "date";
-  series.strokeWidth = 1;
-  series.minBulletDistance = 10;
-  series.tooltipText = "{valueY}";
-  series.fillOpacity = 0.1;
-  series.tooltip.pointerOrientation = "vertical";
-  series.tooltip.background.cornerRadius = 20;
-  series.tooltip.background.fillOpacity = 0.5;
-  series.tooltip.label.padding(12, 12, 12, 12)
-
-  var seriesRange = dateAxis.createSeriesRange(series);
-  seriesRange.contents.strokeDasharray = "2,3";
-  seriesRange.contents.stroke = chart.colors.getIndex(8);
-  seriesRange.contents.strokeWidth = 1;
-
-  var pattern = new am4core.LinePattern();
-  pattern.rotation = -45;
-  pattern.stroke = seriesRange.contents.stroke;
-  pattern.width = 1000;
-  pattern.height = 1000;
-  pattern.gap = 6;
-  seriesRange.contents.fill = pattern;
-  seriesRange.contents.fillOpacity = 0.5;
-
-  // Add scrollbar
-  chart.scrollbarX = new am4core.Scrollbar();
-
-  function generateChartData() {
-    var chartData = [];
-    var firstDate = new Date();
-    firstDate.setDate(firstDate.getDate() - 200);
-    var visits = 1200;
-    for (var i = 0; i < 200; i++) {
-      // we create date objects here. In your data, you can have date strings
-      // and then set format of your dates using chart.dataDateFormat property,
-      // however when possible, use date objects, as this will speed up chart rendering.
-      var newDate = new Date(firstDate);
-      newDate.setDate(newDate.getDate() + i);
-
-      visits += Math.round((Math.random() < 0.5 ? 1 : -1) * Math.random() * 10);
-
-      chartData.push({
-        date: newDate,
-        visits: visits
-      });
-    }
-    return chartData;
-  }
-
-
-  // add range
-  var range = dateAxis.axisRanges.push(new am4charts.DateAxisDataItem());
-  range.grid.stroke = chart.colors.getIndex(0);
-  range.grid.strokeOpacity = 1;
-  range.bullet = new am4core.ResizeButton();
-  range.bullet.background.fill = chart.colors.getIndex(0);
-  range.bullet.background.states.copyFrom(chart.zoomOutButton.background.states);
-  range.bullet.minX = 0;
-  range.bullet.adapter.add("minY", function(minY, target) {
-    target.maxY = chart.plotContainer.maxHeight;
-    target.maxX = chart.plotContainer.maxWidth;
-    return chart.plotContainer.maxHeight;
-  })
-
-  range.bullet.events.on("dragged", function() {
-    range.value = dateAxis.xToValue(range.bullet.pixelX);
-    seriesRange.value = range.value;
-  })
-
-
-  var firstTime = chart.data[0].date.getTime();
-  var lastTime = chart.data[chart.data.length - 1].date.getTime();
-  var date = new Date(firstTime + (lastTime - firstTime) / 2);
-
-  range.date = date;
-
-  seriesRange.date = date;
-  seriesRange.endDate = chart.data[chart.data.length - 1].date;
-
-
-
-
-}
-
-
 function intervalSummary(intervals,start_interval,end_interval,count,lastState){
 
   console.log('intervalSummary function')
@@ -296,158 +185,306 @@ function intervalSummary(intervals,start_interval,end_interval,count,lastState){
   var computerTimeON = 0
   var computerTimeOFF = 0
 
-  console.log('totalRecords', intervals.length)
+  var totalStates = 0
 
-  for (i=0,l=intervals.length; i<l; i++){
-      // console.log('Step:', i)
-      // console.log('current state', currentState)
-      // console.log('next state', intervals[i].idleTime)
+  //empty interval
+  if(intervals.length == 0)
+  {
+    totalStates = 1
+    iLength = 15*60
+    currentState = lastState
 
-      endInterval = intervals[i].collectionTime
-      iLength = endInterval - startInterval
-      // console.log('length', intervalLength)
-
-      if(currentState == 1)
+    if(currentState == 1)
+    {
+        activeUserTime = activeUserTime + iLength
+        computerTimeON = computerTimeON + iLength
+    }
+    else if(currentState == 0)
       {
-          activeUserTime = activeUserTime + iLength
-          computerTimeON = computerTimeON + iLength
+        notactiveUserTime = notactiveUserTime + iLength
+        computerTimeON = computerTimeON + iLength
       }
-      else if(currentState == 0)
-        {
-          notactiveUserTime = notactiveUserTime + iLength
-          computerTimeON = computerTimeON + iLength
+    else if(currentState = 10)
+      {
+        computerTimeOFF = computerTimeOFF + iLength
+      }
+    else
+      {
+        otherNonActive = otherNonActive + iLength
+        computerTimeON = computerTimeON + iLength
+      }
+
+  }
+  else {
+        totalStates = intervals.length
+        console.log('totalRecords', totalStates)
+
+        for (i=0,l=intervals.length; i<l; i++){
+            // console.log('Step:', i)
+            // console.log('current state', currentState)
+            // console.log('next state', intervals[i].idleTime)
+
+            endInterval = intervals[i].collectionTime
+            iLength = endInterval - startInterval
+            // console.log('length', intervalLength)
+
+            if(currentState == 1)
+            {
+                activeUserTime = activeUserTime + iLength
+                computerTimeON = computerTimeON + iLength
+            }
+            else if(currentState == 0)
+              {
+                notactiveUserTime = notactiveUserTime + iLength
+                computerTimeON = computerTimeON + iLength
+              }
+            else if(currentState = 10)
+              {
+                computerTimeOFF = computerTimeOFF + iLength
+              }
+            else
+              {
+                otherNonActive = otherNonActive + iLength
+                computerTimeON = computerTimeON + iLength
+              }
+
+            startInterval = endInterval
+            currentState = intervals[i].idleTime
         }
-      else if(currentState = 10)
+
+        //for the last point - 'current state'
+        iLength = end_interval - startInterval
+        // console.log('length', intervalLength)
+
+        if(currentState == 1)
         {
-          computerTimeOFF = computerTimeOFF + iLength
+            activeUserTime = activeUserTime + iLength
+            computerTimeON = computerTimeON + iLength
         }
-      else
+        else if(currentState == 0)
         {
-          otherNonActive = otherNonActive + iLength
-          computerTimeON = computerTimeON + iLength
+            notactiveUserTime = notactiveUserTime + iLength
+            computerTimeON = computerTimeON + iLength
         }
-
-      startInterval = endInterval
-      currentState = intervals[i].idleTime
-
-
-
-  }
-
-
-  //for the last point - 'current state'
-  iLength = end_interval - startInterval
-  // console.log('length', intervalLength)
-
-  if(currentState == 1)
-  {
-      activeUserTime = activeUserTime + iLength
-      computerTimeON = computerTimeON + iLength
-  }
-  else if(currentState == 0)
-  {
-      notactiveUserTime = notactiveUserTime + iLength
-      computerTimeON = computerTimeON + iLength
-  }
-  else if(currentState = 10)
-  {
-      computerTimeOFF = computerTimeOFF + iLength
-  }
-  else
-  {
-      otherNonActive = otherNonActive + iLength
-      computerTimeON = computerTimeON + iLength
+        else if(currentState = 10)
+        {
+            computerTimeOFF = computerTimeOFF + iLength
+        }
+        else
+        {
+            otherNonActive = otherNonActive + iLength
+            computerTimeON = computerTimeON + iLength
+        }
   }
 
 
 
   return {"startInterval" : start_interval, "endInterval" : end_interval, "countInterval" : count,
                                      "activeUserTime":activeUserTime,"notactiveUserTime":notactiveUserTime,"otherNonActive":otherNonActive,
-                                     "computerTimeON":computerTimeON,"computerTimeOFF":computerTimeOFF,"totalStates":intervals.length,"lastState":currentState}
+                                     "computerTimeON":computerTimeON,"computerTimeOFF":computerTimeOFF,"totalStates":totalStates,"lastState":currentState}
 
 }
 
-function createDailyChart(stateArray,timeArray,collectionTimeArray,intervals){
-              // sort the intervals as sometimes app OFF is saved after app ON
-              intervals = intervals.sort(function(a, b) {
-                  return a.collectionTime - b.collectionTime;
-              });
+function timestampToDate(timestamp){
+  var date = new Date(timestamp*1000);
+  // Year
+  var year = date.getFullYear();
+  // Month
+  // Months array
+  var months_arr = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  var month = months_arr[date.getMonth()];
+  // Day
+  var day = date.getDate();
+  // Hours
+  var hours = date.getHours() -1;
+  // Minutes
+  var minutes = "0" + date.getMinutes();
+  // Seconds
+  var seconds = "0" + date.getSeconds();
+  // Display date time in MM-dd-yyyy h:m:s format
+  var convdataTime = day+'-'+month+'-'+year+' '+hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
+
+  return convdataTime
+
+}
+
+
+document.getElementById('minutesCard').onclick = function(){
+  var now = new Date()
+  endMeasurement = Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000)
+  // -30 minutes
+  startMeasurement = endMeasurement - 30*60
+  console.log('ploting',startMeasurement,endMeasurement)
+    var helpintervals  = intervals.filter(function (el) {
+    return el.collectionTime <= endMeasurement &&
+           el.collectionTime >= startMeasurement
+  });
+
+  if(helpintervals.length == 0)
+  {
+
+  }
+  else{
+      console.log('ploting',helpintervals)
+      createDailyChart(helpintervals)
+  }
+}
+
+document.getElementById('hoursCard').onclick = function(){
+  var now = new Date()
+  endMeasurement = Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000)
+  // -2h
+  startMeasurement = endMeasurement - 30*60*4
+  console.log('ploting',startMeasurement,endMeasurement)
+  var helpintervals = intervals.filter(function (el) {
+    return el.collectionTime <= endMeasurement &&
+           el.collectionTime >= startMeasurement
+  });
+
+  if(helpintervals.length == 0)
+  {
+
+  }
+  else{
+      console.log('ploting',helpintervals)
+      createDailyChart(helpintervals)
+  }
+}
+
+
+document.getElementById('totalCard').onclick = function(){
+
+  if(intervals.length == 0)
+  {
+
+  }
+  else{
+      console.log('ploting',intervals)
+      createDailyChart(intervals)
+  }
+}
+
+
+function transformIntervalArray(intervals){
+
+  // sort the intervals as sometimes app OFF is saved after app ON
+  intervals = intervals.sort(function(a, b) {
+      return a.collectionTime - b.collectionTime;
+  });
+  // final array
+  var intervalArray = {
+      intervals: []
+  };
+  var intervalLength = 15*60
+  //start measurement today
+  //total computer sleep time/lock
+  var startInterval =  startMeasurement = intervals[0].collectionTime
+  // take the last measurement
+  var endMeasurement = intervals[intervals.length - 1].collectionTime
+  var endInterval = startMeasurement + intervalLength - 1
 
 
 
-
-              // final array
-              var intervalArray = {
-                  intervals: []
-              };
-              var intervalLength = 15*60
-
-              //start measurement today
-              //total computer sleep time/lock
-              var startInterval =  startMeasurement = intervals[0].collectionTime
-              // take the last measurement
-              var endMeasurement = intervals[intervals.length - 1].collectionTime
-              var endInterval = startMeasurement + intervalLength - 1
+  //while block
+  count = 0
+  while(startMeasurement <= endMeasurement){
 
 
-
-              // Convert timestamp to milliseconds
-               var date = new Date(endMeasurement*1000);
-               // Year
-               var year = date.getFullYear();
-               // Month
-               // Months array
-               var months_arr = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-               var month = months_arr[date.getMonth()];
-               // Day
-               var day = date.getDate();
-               // Hours
-               var hours = date.getHours();
-               // Minutes
-               var minutes = "0" + date.getMinutes();
-               // Seconds
-               var seconds = "0" + date.getSeconds();
-               // Display date time in MM-dd-yyyy h:m:s format
-               var convdataTime = day+'-'+month+'-'+year+' '+hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
-
-              document.getElementById('lastUpdate').innerHTML = 'Last Updated: ' + convdataTime
-
-              //while block
-              count = 0
-              while(startMeasurement <= endMeasurement){
+    var helpA = intervals.filter(function (el) {
+      return el.collectionTime <= endInterval &&
+             el.collectionTime >= startMeasurement
+    });
 
 
-                var helpA = intervals.filter(function (el) {
-                  return el.collectionTime <= endInterval &&
-                         el.collectionTime >= startMeasurement
-                });
-                console.log('Current interval',startMeasurement,endInterval, helpA)
-                //no data in the current interval, just take the last interval ending state, and add 15 minutes to it.
-                if(helpA.length == 0)
-                {
+    console.log('Current interval',startMeasurement,endInterval, helpA)
+    //no data in the current interval, just take the last interval ending state, and add 15 minutes to it.
+    if(helpA.length == 0)
+    {
+      console.log('no data in interval ', startMeasurement, ' : ', endInterval)
+      intervalArray.intervals.push(intervalSummary(helpA,startMeasurement,endInterval,count, intervalArray.intervals[intervalArray.intervals.length-1].lastState))
+    }
+    //do the standard calculation
+    else{
+      //needed for the last state calculation
+      if(intervalArray.intervals.length == 0){
+        intervalArray.intervals.push(intervalSummary(helpA,startMeasurement,endInterval,count, intervals[0].idleTime))
+        console.log('intervalArray' , intervalArray)
+      }
+      else{
+        intervalArray.intervals.push(intervalSummary(helpA,startMeasurement,endInterval,count, intervalArray.intervals[intervalArray.intervals.length-1].lastState))
+      }
 
-                }
-                //do the standard calculation
-                else{
-                  //needed for the last state calculation
-                  if(intervalArray.intervals.length == 0){
-                    intervalArray.intervals.push(intervalSummary(helpA,startMeasurement,endInterval,count, intervals[0].idleTime))
-                    console.log('intervalArray' , intervalArray)
-                  }
-                  else{
-                    intervalArray.intervals.push(intervalSummary(helpA,startMeasurement,endInterval,count, intervalArray.intervals[intervalArray.intervals.length-1].lastState))
-                  }
+    }
 
-                }
+    startMeasurement = endInterval + 1
+    endInterval = startMeasurement + intervalLength - 1
+    count = count + 1
+  }
 
-                startMeasurement = endInterval + 1
-                endInterval = startMeasurement + intervalLength - 1
-                count = count + 1
-              }
+  console.log('intervalArray' , intervalArray)
+  return intervalArray
+}
 
-              console.log('intervalArray' , intervalArray)
-              console.log(typeof intervalArray);
+
+function fillCards(intervals)
+{
+  intervalArray = transformIntervalArray(intervals)
+  //MINUTES
+  minArray = intervalArray.intervals.slice(intervalArray.intervals.length-2)
+
+  console.log('minArray', minArray)
+  document.getElementById('minActive').innerHTML = 'Active ' + Math.floor(minArray.reduce(function (sum, minArray) {return sum + minArray.activeUserTime;
+  }, 0)/60) + 'min';
+
+  document.getElementById('minInactive').innerHTML  ='Idle ' + Math.floor(minArray.reduce(function (sum, minArray) {
+      return sum + minArray.notactiveUserTime + minArray.otherNonActive;
+  }, 0)/60);
+
+  document.getElementById('minOff').innerHTML = 'OFF ' +  Math.floor(minArray.reduce(function (sum, minArray) {
+      return sum + minArray.computerTimeOFF;
+  }, 0)/60);
+
+  //HOURS
+  hourArray = intervalArray.intervals.slice(intervalArray.intervals.length-8)
+  console.log('hourArray', hourArray)
+
+  // console.log('minArray', minArray)
+  document.getElementById('hoursActive').innerHTML = 'Active ' + Math.floor(hourArray.reduce(function (sum, hourArray) {
+      return sum + hourArray.activeUserTime;
+  }, 0)/60) + 'min';
+
+  document.getElementById('hoursInactive').innerHTML  = 'Idle ' + Math.floor(hourArray.reduce(function (sum, hourArray) {
+      return sum + hourArray.notactiveUserTime + hourArray.otherNonActive;
+  }, 0)/60) + 'min';
+
+  document.getElementById('hoursOff').innerHTML  =  'OFF ' +Math.floor(hourArray.reduce(function (sum, hourArray) {
+      return sum + hourArray.computerTimeOFF;
+  }, 0)/60) + 'min';
+
+
+  // TOTAL DAY SUMMARY
+  totalArray = intervalArray.intervals
+  document.getElementById('totalActive').innerHTML = 'Active ' + Math.floor(totalArray.reduce(function (sum, totalArray) {
+      return sum + totalArray.activeUserTime;
+  }, 0)/60) + 'min';
+
+  document.getElementById('totalInactive').innerHTML  ='Idle ' +  Math.floor(totalArray.reduce(function (sum, totalArray) {
+      return sum + totalArray.notactiveUserTime + totalArray.otherNonActive;
+  }, 0)/60) + 'min';
+
+  document.getElementById('totalOff').innerHTML  =  'OFF ' + Math.floor(totalArray.reduce(function (sum, totalArray) {
+      return sum + totalArray.computerTimeOFF;
+  }, 0)/60) + 'min';
+
+
+}
+
+function createDailyChart(intervals){
+
+          document.getElementById('lastUpdate').innerHTML = 'Last Updated: ' + timestampToDate(intervals[intervals.length - 1].collectionTime)
+          intervalArray = transformIntervalArray(intervals)
+          console.log(typeof intervalArray);
             //   for(var i = 0; i < intervalArray.length; i++) {
             //     var obj = intervalArray[i];
             //     console.log('i',i);
@@ -455,175 +492,154 @@ function createDailyChart(stateArray,timeArray,collectionTimeArray,intervals){
             // }
               //get last 2 to calculate 30 minutes activity
 
-              //MINUTES
-              minArray = intervalArray.intervals.slice(intervalArray.intervals.length-2)
-
-              console.log('minArray', minArray)
-              document.getElementById('minActive').innerHTML = 'Active ' + Math.floor(minArray.reduce(function (sum, minArray) {return sum + minArray.activeUserTime;
-              }, 0)/60) + 'min';
-
-              document.getElementById('minInactive').innerHTML  ='Idle ' + Math.floor(minArray.reduce(function (sum, minArray) {
-                  return sum + minArray.notactiveUserTime + minArray.otherNonActive;
-              }, 0)/60);
-
-              document.getElementById('minOff').innerHTML = 'OFF ' +  Math.floor(minArray.reduce(function (sum, minArray) {
-                  return sum + minArray.computerTimeOFF;
-              }, 0)/60);
-
-              //HOURS
-              hourArray = intervalArray.intervals.slice(intervalArray.intervals.length-8)
-              console.log('hourArray', hourArray)
-
-              // console.log('minArray', minArray)
-              document.getElementById('hoursActive').innerHTML = 'Active ' + Math.floor(hourArray.reduce(function (sum, hourArray) {
-                  return sum + hourArray.activeUserTime;
-              }, 0)/60) + 'min';
-
-              document.getElementById('hoursInactive').innerHTML  = 'Idle ' + Math.floor(hourArray.reduce(function (sum, hourArray) {
-                  return sum + hourArray.notactiveUserTime + hourArray.otherNonActive;
-              }, 0)/60) + 'min';
-
-              document.getElementById('hoursOff').innerHTML  =  'OFF ' +Math.floor(hourArray.reduce(function (sum, hourArray) {
-                  return sum + hourArray.computerTimeOFF;
-              }, 0)/60) + 'min';
 
 
-              // TOTAL DAY SUMMARY
-              totalArray = intervalArray.intervals
-              document.getElementById('totalActive').innerHTML = 'Active ' + Math.floor(totalArray.reduce(function (sum, totalArray) {
-                  return sum + totalArray.activeUserTime;
-              }, 0)/60) + 'min';
+              // FOR THE CARDS
 
-              document.getElementById('totalInactive').innerHTML  ='Idle ' +  Math.floor(totalArray.reduce(function (sum, totalArray) {
-                  return sum + totalArray.notactiveUserTime + totalArray.otherNonActive;
-              }, 0)/60) + 'min';
 
-              document.getElementById('totalOff').innerHTML  =  'OFF ' + Math.floor(totalArray.reduce(function (sum, totalArray) {
-                  return sum + totalArray.computerTimeOFF;
-              }, 0)/60) + 'min';
 
-              //OLD MEASUREMENT SUMMARY
-              var endInterval = startInterval
-              var currentState = intervals[0].idleTime
-              //recreating idle timeline
-              // total active computer usage time
-              var activeUserTime=0
-              //total nonactive computer usage time
-              var notactiveUserTime=0
-              //total other nonactive
-              var otherNonActive = 0
-
-              var iLength = 0
-              var computerTimeON = 0
-              var computerTimeOFF = 0
-
-              console.log('totalRecords', intervals.length)
-
-              for (i=1,l=intervals.length; i<l; i++){
-                  // console.log('Step:', i)
-                  // console.log('current state', currentState)
-                  // console.log('next state', intervals[i].idleTime)
-
-                  endInterval = intervals[i].collectionTime
-                  iLength = endInterval - startInterval
-                  // console.log('length', intervalLength)
-
-                  if(currentState == 1)
-                    {
-                      activeUserTime = activeUserTime + iLength
-                      computerTimeON = computerTimeON + iLength
-                    }
-                  else if(currentState == 0)
-                    {
-                      notactiveUserTime = notactiveUserTime + iLength
-                      computerTimeON = computerTimeON + iLength
-                    }
-                  else if(currentState = 10)
-                    {
-                      computerTimeOFF = computerTimeOFF + iLength
-                    }
-                  else
-                    {
-                      otherNonActive = otherNonActive + iLength
-                      computerTimeON = computerTimeON + iLength
-                    }
-
-                  startInterval = endInterval
-                  currentState = intervals[i].idleTime
-                  // console.log('activeTime',activeUserTime)
-                  // console.log('notactiveTime',notactiveUserTime)
-                  // console.log('otherNonActive',otherNonActive)
+              // For chart 2
+              var intervalTime = 60*15
+              var timestamps = []
+              var active_percentages = []
+              var chartData = []
+              for (i=0,l=intervalArray.intervals.length; i<l; i++){
+                    console.log('interval', i, 'perc active', (intervalArray.intervals[i].activeUserTime/intervalTime)*100)
+                    active_percentages.push(Math.floor((intervalArray.intervals[i].activeUserTime/intervalTime)*100))
+                    console.log('start', timestampToDate(intervalArray.intervals[i].startInterval), 'end', timestampToDate(intervalArray.intervals[i].endInterval))
+                    // in milliseconds for chartjs
+                    timestamps.push((intervalArray.intervals[i].endInterval - 3600)*1000)
               }
-              //
-              // console.log('final activeTime',activeUserTime)
-              // console.log('final notactiveTime',notactiveUserTime)
-              //
-              // console.log('computerTimeON',computerTimeON)
-              // console.log('computerTimeOFF',computerTimeOFF)
+              var ctx = document.getElementById('myChart2').getContext('2d');
+              // document.getElementById('myChart2').style.height = "300px"
+              // document.getElementById('myChart2').style.width = "300px"
+              if (myChart) {
+                myChart.destroy();
+                // myChart.data.labels = timestamps
+                // myChart.data.datasets[0].data = active_percentages
+                // myChart.update()
 
-              var ctx = document.getElementById('myChart').getContext('2d');
-              var myChartSitting = new Chart(ctx, {
+              }
+
+              // else{
+              myChart = new Chart(ctx, {
                               type: 'line',
                               responsive:true,
                               data: {
-                                  labels: timeArray,
+                                  labels: timestamps,
                                   datasets: [{
-                                      data:stateArray,
-                                      steppedLine: true,
-                                      // backgroundColor: [
-                                      //     'rgba(113, 121, 250, 1)'
-                                      // ],
-                                      borderColor: [
-                                          'rgba(113, 121, 250,1)'
-                                      ],
-                                      borderWidth: 2
+                                      data:active_percentages
                                   }]
                               },
                               options: {
                                 legend: {
                                      display: false
                                  },
-                                  scales: {
-                                      yAxes: [{
-                                          scaleLabel: {
-                                              display: true,
-                                              fontColor: "#CCC",
-                                              labelString: 'State ID',
-                                              fontSize: 14
-                                          },  gridLines: {drawBorder: false,
-                                                display:false
+                                scales: {
+                                    xAxes: [{
+                                      type: 'time',
+                                      distribution: 'series',
+                                      time: {
+                                          displayFormats: {
+                                              quarter: 'h:mm a'
+                                          }
+                                      }
+                                  }]
+                                },
+
+                                plugins: {
+					                            zoom: {
+                                        pan: {
+                                          enabled: true,
+                                          mode: "xy",
+
+
                                             },
-                                            ticks: {
-                                              beginAtZero: true,
-                                              callback: function (value) { if (Number.isInteger(value)) { return value; } },
-                                              stepSize: 1,
-                                              fontColor: "#CCC"
-                                          }
-                                      }],
-                                      xAxes: [{
-                                          scaleLabel: {
-                                              display: true,
-                                              fontColor: "#CCC",
-                                              labelString: 'Time'
-                                          },
-                                          gridLines: {drawBorder: false,
-                                            display:false
-                                          },
-                                          ticks: {
-                                              beginAtZero:true,
-                                              fontColor: "#CCC"
-                                          }
-                                      }]
-                                  },
+                                        zoom: {
+                                          enabled: true,
+                                          mode: "xy",
 
-                                  animation: {
-                                      duration:1000,
-                                      easing:'easeOutCubic'
-                                  }
+                                            }
+                                        }
+                                      }
 
-                              }
+                              },
+
 
                           });
+                        // }
+
+
+
+              // var ctx = document.getElementById('myChart').getContext('2d');
+              // var myChartSitting = new Chart(ctx, {
+              //                 type: 'line',
+              //                 responsive:true,
+              //                 data: {
+              //                     labels: timeArray,
+              //                     datasets: [{
+              //                         data:stateArray,
+              //                         steppedLine: true,
+              //                         // backgroundColor: [
+              //                         //     'rgba(113, 121, 250, 1)'
+              //                         // ],
+              //                         borderColor: [
+              //                             'rgba(113, 121, 250,1)'
+              //                         ],
+              //                         borderWidth: 2
+              //                     }]
+              //                 },
+              //                 options: {
+              //                   legend: {
+              //                        display: false
+              //                    },
+              //                     scales: {
+              //                         yAxes: [{
+              //                             scaleLabel: {
+              //                                 display: true,
+              //                                 fontColor: "#CCC",
+              //                                 labelString: 'State ID',
+              //                                 fontSize: 14
+              //                             },  gridLines: {drawBorder: false,
+              //                                   display:false
+              //                               },
+              //                               ticks: {
+              //                                 beginAtZero: true,
+              //                                 callback: function (value) { if (Number.isInteger(value)) { return value; } },
+              //                                 stepSize: 1,
+              //                                 fontColor: "#CCC"
+              //                             }
+              //                         }],
+              //                         xAxes: [{
+              //                             scaleLabel: {
+              //                                 display: true,
+              //                                 fontColor: "#CCC",
+              //                                 labelString: 'Time'
+              //                             },
+              //                             gridLines: {drawBorder: false,
+              //                               display:false
+              //                             },
+              //                             ticks: {
+              //                                 beginAtZero:true,
+              //                                 fontColor: "#CCC"
+              //                             }
+              //                         }]
+              //                     },
+              //
+              //                     animation: {
+              //                         duration:1000,
+              //                         easing:'easeOutCubic'
+              //                     }
+              //
+              //                 }
+              //
+              //             });
+
+
+
+
+
+
 
 }
 
