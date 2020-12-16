@@ -49,8 +49,7 @@ body {
 } */
 
 /* Style the counter cards */
-.card {
-  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+.mcard,.hcard,.tcard {
   padding: 6px;
   text-align: center;
   background-color: #f1f1f1;
@@ -76,7 +75,7 @@ body {
       <div id="textDataDiv">
           <div class="row">
             <div class="column">
-              <div class="card" id = "minutesCard">
+              <div class="mcard" id = "minutesCard">
                 <h3>Last 30 mins</h3>
                 <p id="minActive">Active</p>
                 <p id="minInactive">Idle</p>
@@ -85,7 +84,7 @@ body {
             </div>
 
             <div class="column">
-              <div class="card"  id = "hoursCard">
+              <div class="hcard"  id = "hoursCard">
                 <h3>Last 2 hours</h3>
                 <p id="hoursActive">Active</p>
                 <p id="hoursInactive">Idle</p>
@@ -97,7 +96,7 @@ body {
           </br>
           <div class="row">
             <div class="column">
-              <div class="card" id = "totalCard">
+              <div class="tcard" id = "totalCard">
                 <h3>Total Today</h3>
                 <p id="totalActive">Active</p>
                 <p id="totalInactive">Idle</p>

@@ -110,7 +110,18 @@ function ipcRendererEvents(username,computerName){
 
         }
         else{
-            createDailyChart(intervals)
+            console.log('BOX SHADOWWW', getComputedStyle(document.querySelector('.mcard'), "boxShadow").boxShadow)
+            console.log('BOX SHADOWWW', getComputedStyle(document.getElementById('totalCard'), "boxShadow").boxShadow)
+            var label
+            if(getComputedStyle(document.querySelector('.mcard'), "boxShadow").boxShadow!='none')
+              label='min'
+            else if(getComputedStyle(document.querySelector('.hcard'), "boxShadow").boxShadow!='none')
+              label='hour'
+            else {
+              label='total'
+            }
+
+            createDailyChart(intervals,label)
             fillCards(intervals)
         }
 
@@ -311,58 +322,16 @@ function timestampToDate(timestamp){
 
 
 document.getElementById('minutesCard').onclick = function(){
-  var now = new Date()
-  endMeasurement = Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000)
-  // -30 minutes
-  startMeasurement = endMeasurement - 30*60
-  console.log('ploting',startMeasurement,endMeasurement)
-    var helpintervals  = intervals.filter(function (el) {
-    return el.collectionTime <= endMeasurement &&
-           el.collectionTime >= startMeasurement
-  });
-
-  if(helpintervals.length == 0)
-  {
-
-  }
-  else{
-      console.log('ploting',helpintervals)
-      createDailyChart(helpintervals)
-  }
+    createDailyChart(intervals,'min')
 }
 
 document.getElementById('hoursCard').onclick = function(){
-  var now = new Date()
-  endMeasurement = Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000)
-  // -2h
-  startMeasurement = endMeasurement - 30*60*4
-  console.log('ploting',startMeasurement,endMeasurement)
-  var helpintervals = intervals.filter(function (el) {
-    return el.collectionTime <= endMeasurement &&
-           el.collectionTime >= startMeasurement
-  });
-
-  if(helpintervals.length == 0)
-  {
-
-  }
-  else{
-      console.log('ploting',helpintervals)
-      createDailyChart(helpintervals)
-  }
+  createDailyChart(intervals,'hour')
 }
 
 
 document.getElementById('totalCard').onclick = function(){
-
-  if(intervals.length == 0)
-  {
-
-  }
-  else{
-      console.log('ploting',intervals)
-      createDailyChart(intervals)
-  }
+    createDailyChart(intervals,'total')
 }
 
 
@@ -480,10 +449,57 @@ function fillCards(intervals)
 
 }
 
-function createDailyChart(intervals){
+function createDailyChart(intervals,label){
+          var helpintervals
+          if(label == 'min'){
+            document.getElementById("minutesCard").style["boxShadow"] = "0 8px 8px 0 rgba(0, 0, 0, 0.2)";
+            document.getElementById("hoursCard").style["boxShadow"] = "none";
+            document.getElementById("totalCard").style["boxShadow"] = "none";
+
+            var now = new Date()
+            endMeasurement = Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000)
+            // -30 minutes
+            startMeasurement = endMeasurement - 30*60
+            console.log('ploting',startMeasurement,endMeasurement)
+              helpintervals  = intervals.filter(function (el) {
+              return el.collectionTime <= endMeasurement &&
+                     el.collectionTime >= startMeasurement
+            });
+
+
+          }
+
+          else if(label == 'hour'){
+            document.getElementById("hoursCard").style["boxShadow"] = "0 8px 8px 0 rgba(0, 0, 0, 0.2)";
+            document.getElementById("minutesCard").style["boxShadow"] = "none";
+            document.getElementById("totalCard").style["boxShadow"] = "none";
+
+
+            var now = new Date()
+            endMeasurement = Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000)
+            // -2h
+            startMeasurement = endMeasurement - 30*60*4
+            console.log('ploting',startMeasurement,endMeasurement)
+            helpintervals = intervals.filter(function (el) {
+              return el.collectionTime <= endMeasurement &&
+                     el.collectionTime >= startMeasurement
+            });
+
+
+
+          }
+
+          else if(label == 'total'){
+            document.getElementById("totalCard").style["boxShadow"] = "0 8px 8px 0 rgba(0, 0, 0, 0.2)";
+            document.getElementById("hoursCard").style["boxShadow"] = "none";
+            document.getElementById("minutesCard").style["boxShadow"] = "none";
+            helpintervals = intervals
+
+          }
+
 
           document.getElementById('lastUpdate').innerHTML = 'Last Updated: ' + timestampToDate(intervals[intervals.length - 1].collectionTime)
-          intervalArray = transformIntervalArray(intervals)
+          intervalArray = transformIntervalArray(helpintervals)
           console.log(typeof intervalArray);
             //   for(var i = 0; i < intervalArray.length; i++) {
             //     var obj = intervalArray[i];
