@@ -1,3 +1,4 @@
+// necessary libraries
 const electron = require('electron').remote
 const date = require('date-and-time');
 const axios = require('axios');
@@ -7,12 +8,9 @@ const os = require('os');
 const { ipcRenderer } = window.require('electron');
 var Chart = require('chart.js');
 
-//de chart
+//global variables
 var myChart
-//de data
 var intervals
-
-
 
 //read the username first and then start the data collection
 const jsonfile = path.join(__dirname,'./electronuser.json')
@@ -25,13 +23,9 @@ fs.readFile(jsonfile, 'utf8', (err, userString) => {
           const user = JSON.parse(userString)
           const computerName = os.hostname() + ' ' + os.type()
 
-          //indicates that the app is active
-          // event 0 - app is activated
+          // all functions called here
           appClosePost(user.username,computerName,user.appClosingTime)
-          console.log('App close location: ',user.functionPlace)
-          console.log(userString)
           appStartPost(user.username,computerName)
-
           monitorDailyState(user.username,computerName)
           postAdditionalComputerStates(user.username,computerName)
           ipcRendererEvents(user.username,computerName)
@@ -84,10 +78,11 @@ async function appClosePost(username,computerName,time) {
 
 
 function ipcRendererEvents(username,computerName){
-  console.log('Registering ipc render events')
+  console.log('User clicks icon...')
   //Display latest idle state data
   ipcRenderer.on('MSG_SHOW_PLOT', (event, data) => {
 
+    //make the start and end interval - take the whole day data (until the current point)
     var start = new Date();
     start.setHours(0,0,0,0);
     var end = new Date();
@@ -98,28 +93,28 @@ function ipcRendererEvents(username,computerName){
     var apiCall = 'https://health-iot.labs.vu.nl/api/idlestate/user/'+ username+'/device/'+ computerName
     +'/startdate/'+ startdate+'/enddate/'+ enddate
 
-    console.log(apiCall)
+    console.log('Getting daily data', apiCall)
 
     axios.get(apiCall)
       .then(function (response) {
         // handle success
-          intervals = response.data.intervals
+        intervals = response.data.intervals
         //no daily data to show on the plot
         if(intervals.length == 0)
         {
 
         }
         else{
-            console.log('BOX SHADOWWW', getComputedStyle(document.querySelector('.mcard'), "boxShadow").boxShadow)
-            console.log('BOX SHADOWWW', getComputedStyle(document.getElementById('totalCard'), "boxShadow").boxShadow)
+
+            //deciding what data to obtain (based on highlighted card by the user). Total is the default
             var label
             if(getComputedStyle(document.querySelector('.mcard'), "boxShadow").boxShadow!='none')
               label='min'
             else if(getComputedStyle(document.querySelector('.hcard'), "boxShadow").boxShadow!='none')
               label='hour'
-            else {
+            else
               label='total'
-            }
+
 
             createDailyChart(intervals,label)
             fillCards(intervals)
@@ -151,7 +146,7 @@ function ipcRendererEvents(username,computerName){
                   user.login = true
                   user.username = user.username
                   user.appClosingTime = Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000)
-                  user.functionPlace = "ipcRenderer app-close"
+                  // user.functionPlace = "ipcRenderer app-close"
                   fs.writeFile(jsonfile, JSON.stringify(user), (err) => {
                           if (err)
                           {
@@ -179,7 +174,7 @@ Date.prototype.getUTCTime = function(){
 
 function intervalSummary(intervals,start_interval,end_interval,count,lastState){
 
-  console.log('intervalSummary function')
+  // console.log('intervalSummary function')
   var currentState = lastState
 
   var startInterval = start_interval
@@ -198,7 +193,7 @@ function intervalSummary(intervals,start_interval,end_interval,count,lastState){
 
   var totalStates = 0
 
-  //empty interval
+  //empty interval - in this case only take the last state and add 15 minutes to it
   if(intervals.length == 0)
   {
     totalStates = 1
@@ -228,7 +223,7 @@ function intervalSummary(intervals,start_interval,end_interval,count,lastState){
   }
   else {
         totalStates = intervals.length
-        console.log('totalRecords', totalStates)
+        // console.log('total data intervals', totalStates)
 
         for (i=0,l=intervals.length; i<l; i++){
             // console.log('Step:', i)
@@ -322,16 +317,19 @@ function timestampToDate(timestamp){
 
 
 document.getElementById('minutesCard').onclick = function(){
-    createDailyChart(intervals,'min')
+  console.log('Creating 30-minute plot')
+  createDailyChart(intervals,'min')
 }
 
 document.getElementById('hoursCard').onclick = function(){
+  console.log('Creating 2-hours plot')
   createDailyChart(intervals,'hour')
 }
 
 
 document.getElementById('totalCard').onclick = function(){
-    createDailyChart(intervals,'total')
+  console.log('Creating total data plot')
+  createDailyChart(intervals,'total')
 }
 
 
@@ -353,8 +351,6 @@ function transformIntervalArray(intervals){
   var endMeasurement = intervals[intervals.length - 1].collectionTime
   var endInterval = startMeasurement + intervalLength - 1
 
-
-
   //while block
   count = 0
   while(startMeasurement <= endMeasurement){
@@ -366,11 +362,11 @@ function transformIntervalArray(intervals){
     });
 
 
-    console.log('Current interval',startMeasurement,endInterval, helpA)
+    // console.log('Current interval',startMeasurement,endInterval, helpA)
     //no data in the current interval, just take the last interval ending state, and add 15 minutes to it.
     if(helpA.length == 0)
     {
-      console.log('no data in interval ', startMeasurement, ' : ', endInterval)
+      // console.log('no data in interval ', startMeasurement, ' : ', endInterval)
       intervalArray.intervals.push(intervalSummary(helpA,startMeasurement,endInterval,count, intervalArray.intervals[intervalArray.intervals.length-1].lastState))
     }
     //do the standard calculation
@@ -378,7 +374,7 @@ function transformIntervalArray(intervals){
       //needed for the last state calculation
       if(intervalArray.intervals.length == 0){
         intervalArray.intervals.push(intervalSummary(helpA,startMeasurement,endInterval,count, intervals[0].idleTime))
-        console.log('intervalArray' , intervalArray)
+        // console.log('intervalArray' , intervalArray)
       }
       else{
         intervalArray.intervals.push(intervalSummary(helpA,startMeasurement,endInterval,count, intervalArray.intervals[intervalArray.intervals.length-1].lastState))
@@ -390,7 +386,7 @@ function transformIntervalArray(intervals){
     endInterval = startMeasurement + intervalLength - 1
     count = count + 1
   }
-
+  console.log('input interval length ', intervals.length)
   console.log('intervalArray' , intervalArray)
   return intervalArray
 }
@@ -434,6 +430,8 @@ function fillCards(intervals)
 
   // TOTAL DAY SUMMARY
   totalArray = intervalArray.intervals
+  console.log('totalArray', totalArray)
+
   document.getElementById('totalActive').innerHTML = 'Active ' + Math.floor(totalArray.reduce(function (sum, totalArray) {
       return sum + totalArray.activeUserTime;
   }, 0)/60) + 'min';
@@ -450,12 +448,12 @@ function fillCards(intervals)
 }
 
 function createDailyChart(intervals,label){
+          // cutting the size of the interval based on the plot selection
           var helpintervals
           if(label == 'min'){
             document.getElementById("minutesCard").style["boxShadow"] = "0 8px 8px 0 rgba(0, 0, 0, 0.2)";
             document.getElementById("hoursCard").style["boxShadow"] = "none";
             document.getElementById("totalCard").style["boxShadow"] = "none";
-
             var now = new Date()
             endMeasurement = Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000)
             // -30 minutes
@@ -465,16 +463,12 @@ function createDailyChart(intervals,label){
               return el.collectionTime <= endMeasurement &&
                      el.collectionTime >= startMeasurement
             });
-
-
           }
 
           else if(label == 'hour'){
             document.getElementById("hoursCard").style["boxShadow"] = "0 8px 8px 0 rgba(0, 0, 0, 0.2)";
             document.getElementById("minutesCard").style["boxShadow"] = "none";
             document.getElementById("totalCard").style["boxShadow"] = "none";
-
-
             var now = new Date()
             endMeasurement = Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000)
             // -2h
@@ -484,9 +478,6 @@ function createDailyChart(intervals,label){
               return el.collectionTime <= endMeasurement &&
                      el.collectionTime >= startMeasurement
             });
-
-
-
           }
 
           else if(label == 'total'){
@@ -499,45 +490,28 @@ function createDailyChart(intervals,label){
 
 
           document.getElementById('lastUpdate').innerHTML = 'Last Updated: ' + timestampToDate(intervals[intervals.length - 1].collectionTime)
+          // the interval array as needed for the plot
+          console.log('helpintervals - ',label, ':',  helpintervals)
           intervalArray = transformIntervalArray(helpintervals)
-          console.log(typeof intervalArray);
-            //   for(var i = 0; i < intervalArray.length; i++) {
-            //     var obj = intervalArray[i];
-            //     console.log('i',i);
-            //     console.log('obj',obj);
-            // }
-              //get last 2 to calculate 30 minutes activity
 
-
-
-              // FOR THE CARDS
-
-
-
-              // For chart 2
-              var intervalTime = 60*15
-              var timestamps = []
-              var active_percentages = []
-              var chartData = []
-              for (i=0,l=intervalArray.intervals.length; i<l; i++){
-                    console.log('interval', i, 'perc active', (intervalArray.intervals[i].activeUserTime/intervalTime)*100)
-                    active_percentages.push(Math.floor((intervalArray.intervals[i].activeUserTime/intervalTime)*100))
-                    console.log('start', timestampToDate(intervalArray.intervals[i].startInterval), 'end', timestampToDate(intervalArray.intervals[i].endInterval))
-                    // in milliseconds for chartjs
-                    timestamps.push((intervalArray.intervals[i].endInterval - 3600)*1000)
-              }
-              var ctx = document.getElementById('myChart2').getContext('2d');
-              // document.getElementById('myChart2').style.height = "300px"
-              // document.getElementById('myChart2').style.width = "300px"
-              if (myChart) {
-                myChart.destroy();
-                // myChart.data.labels = timestamps
-                // myChart.data.datasets[0].data = active_percentages
-                // myChart.update()
-
-              }
-
-              // else{
+            // For chart 2
+            var intervalTime = 60*15
+            var timestamps = []
+            var active_percentages = []
+            var chartData = []
+            for (i=0,l=intervalArray.intervals.length; i<l; i++){
+                  // console.log('interval', i, 'perc active', (intervalArray.intervals[i].activeUserTime/intervalTime)*100)
+                  active_percentages.push(Math.floor((intervalArray.intervals[i].activeUserTime/intervalTime)*100))
+                  // console.log('start', timestampToDate(intervalArray.intervals[i].startInterval), 'end', timestampToDate(intervalArray.intervals[i].endInterval))
+                  // in milliseconds for chartjs
+                  timestamps.push((intervalArray.intervals[i].endInterval - 3600)*1000)
+            }
+            var ctx = document.getElementById('myChart2').getContext('2d');
+            // document.getElementById('myChart2').style.height = "300px"
+            // document.getElementById('myChart2').style.width = "300px"
+            if (myChart) {
+              myChart.destroy();
+            }
               myChart = new Chart(ctx, {
                               type: 'line',
                               responsive:true,
@@ -583,94 +557,17 @@ function createDailyChart(intervals,label){
 
 
                           });
-                        // }
-
-
-
-              // var ctx = document.getElementById('myChart').getContext('2d');
-              // var myChartSitting = new Chart(ctx, {
-              //                 type: 'line',
-              //                 responsive:true,
-              //                 data: {
-              //                     labels: timeArray,
-              //                     datasets: [{
-              //                         data:stateArray,
-              //                         steppedLine: true,
-              //                         // backgroundColor: [
-              //                         //     'rgba(113, 121, 250, 1)'
-              //                         // ],
-              //                         borderColor: [
-              //                             'rgba(113, 121, 250,1)'
-              //                         ],
-              //                         borderWidth: 2
-              //                     }]
-              //                 },
-              //                 options: {
-              //                   legend: {
-              //                        display: false
-              //                    },
-              //                     scales: {
-              //                         yAxes: [{
-              //                             scaleLabel: {
-              //                                 display: true,
-              //                                 fontColor: "#CCC",
-              //                                 labelString: 'State ID',
-              //                                 fontSize: 14
-              //                             },  gridLines: {drawBorder: false,
-              //                                   display:false
-              //                               },
-              //                               ticks: {
-              //                                 beginAtZero: true,
-              //                                 callback: function (value) { if (Number.isInteger(value)) { return value; } },
-              //                                 stepSize: 1,
-              //                                 fontColor: "#CCC"
-              //                             }
-              //                         }],
-              //                         xAxes: [{
-              //                             scaleLabel: {
-              //                                 display: true,
-              //                                 fontColor: "#CCC",
-              //                                 labelString: 'Time'
-              //                             },
-              //                             gridLines: {drawBorder: false,
-              //                               display:false
-              //                             },
-              //                             ticks: {
-              //                                 beginAtZero:true,
-              //                                 fontColor: "#CCC"
-              //                             }
-              //                         }]
-              //                     },
-              //
-              //                     animation: {
-              //                         duration:1000,
-              //                         easing:'easeOutCubic'
-              //                     }
-              //
-              //                 }
-              //
-              //             });
-
-
-
-
-
 
 
 }
 
 function postAdditionalComputerStates(username,computerName){
-  console.log('Registering Additional Computer States...')
-
-  //different states - see if it is useful to save them to database as well
   //suspend - 2
   electron.powerMonitor.on('suspend', () => {
     now = new Date();
     console.log(date.format(now, 'YYYY/MM/DD HH:mm:ss') +' The system is going to sleep');
     // var event = document.getElementById("event");
     // event.innerText = ' The system is going to sleep'
-
-
     axios.post('https://health-iot.labs.vu.nl/api/idlestate/post',
       {
         userid: username,
@@ -710,51 +607,7 @@ function postAdditionalComputerStates(username,computerName){
 
   });
 
-  // on-ac 4
-  // electron.powerMonitor.on('on-ac', () => {
-  //   now = new Date();
-  //   console.log(date.format(now, 'YYYY/MM/DD HH:mm:ss') +' The system is on AC Power (charging)');
-  //   // var event = document.getElementById("event");
-  //   // event.innerText =' The system is on AC Power (charging)'
-  //
-  //   axios.post('https://health-iot.labs.vu.nl/api/idlestate/post',
-  //     {
-  //       userid: username,
-  //       deviceid: computerName,
-  //       collectionTime: Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000),
-  //       idleTime: 4
-  //     }
-  //   )
-  //   .then((response) => {
-  //     console.log('POST OK');
-  //   }, (error) => {
-  //     console.log(error);
-  //   });
-  //
-  //
-  // });
 
-  // on-battery 5
-  // electron.powerMonitor.on('on-battery', () => {
-  //      now = new Date();
-  //     console.log(date.format(now, 'YYYY/MM/DD HH:mm:ss') +' The system is on Battery Power');
-  //     // var event = document.getElementById("event");
-  //     // event.innerText = ' The system is on Battery Power'
-  //
-  //     axios.post('https://health-iot.labs.vu.nl/api/idlestate/post',
-  //       {
-  //         userid: username,
-  //         deviceid: computerName,
-  //         collectionTime: Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000),
-  //         idleTime: 5
-  //       }
-  //     )
-  //     .then((response) => {
-  //       console.log('POST OK');
-  //     }, (error) => {
-  //       console.log(error);
-  //     });
-  // });
 
   // shutdown 6
   electron.powerMonitor.on('shutdown', () => {

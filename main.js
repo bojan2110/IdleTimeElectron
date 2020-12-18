@@ -39,7 +39,7 @@ function createWindow () {
     show: false,
     frame: false,
     fullscreenable: false,
-    resizable: false
+    resizable: true
   })
 
  mainWindow.loadFile('login.html')
@@ -135,7 +135,7 @@ function saveCloseState(place){
             user.login = true
             user.username = user.username
             user.appClosingTime = Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000)
-            user.functionPlace = place
+            // user.functionPlace = place
             fs.writeFile(jsonfile, JSON.stringify(user), (err) => {
                     if (err)
                     {
