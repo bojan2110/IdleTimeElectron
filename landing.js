@@ -10,7 +10,7 @@ var Chart = require('chart.js');
 
 //global variables
 var myChart
-var intervals
+var states
 
 //read the username first and then start the data collection
 const jsonfile = path.join(__dirname,'./electronuser.json')
@@ -98,11 +98,12 @@ function ipcRendererEvents(username,computerName){
     axios.get(apiCall)
       .then(function (response) {
         // handle success
-        intervals = response.data.intervals
-        //no daily data to show on the plot
-        if(intervals.length == 0)
+        states = response.data.intervals
+        //no daily data to show on the plot - this is the case when no data has been collected so far
+        if(states.length == 0)
         {
-
+          //THIS MEANS THAT THE COMPUTER WAS OFF UNTIL THIS POINT
+          // createDailyChart([],'nodata')
         }
         else{
 
@@ -116,8 +117,8 @@ function ipcRendererEvents(username,computerName){
               label='total'
 
 
-            createDailyChart(intervals,label)
-            fillCards(intervals)
+            createDailyChart(states,label)
+            fillCards(states)
         }
 
 
@@ -172,125 +173,6 @@ Date.prototype.getUTCTime = function(){
   return this.getTime()-(this.getTimezoneOffset()*60000);
 };
 
-function intervalSummary(intervals,start_interval,end_interval,count,lastState){
-
-  // console.log('intervalSummary function')
-  var currentState = lastState
-
-  var startInterval = start_interval
-  var endInterval = 0
-  //recreating idle timeline
-  // total active computer usage time
-  var activeUserTime=0
-  //total nonactive computer usage time
-  var notactiveUserTime=0
-  //total other nonactive
-  var otherNonActive = 0
-
-  var iLength = 0
-  var computerTimeON = 0
-  var computerTimeOFF = 0
-
-  var totalStates = 0
-
-  //empty interval - in this case only take the last state and add 15 minutes to it
-  if(intervals.length == 0)
-  {
-    totalStates = 1
-    iLength = 15*60
-    currentState = lastState
-
-    if(currentState == 1)
-    {
-        activeUserTime = activeUserTime + iLength
-        computerTimeON = computerTimeON + iLength
-    }
-    else if(currentState == 0)
-      {
-        notactiveUserTime = notactiveUserTime + iLength
-        computerTimeON = computerTimeON + iLength
-      }
-    else if(currentState = 10)
-      {
-        computerTimeOFF = computerTimeOFF + iLength
-      }
-    else
-      {
-        otherNonActive = otherNonActive + iLength
-        computerTimeON = computerTimeON + iLength
-      }
-
-  }
-  else {
-        totalStates = intervals.length
-        // console.log('total data intervals', totalStates)
-
-        for (i=0,l=intervals.length; i<l; i++){
-            // console.log('Step:', i)
-            // console.log('current state', currentState)
-            // console.log('next state', intervals[i].idleTime)
-
-            endInterval = intervals[i].collectionTime
-            iLength = endInterval - startInterval
-            // console.log('length', intervalLength)
-
-            if(currentState == 1)
-            {
-                activeUserTime = activeUserTime + iLength
-                computerTimeON = computerTimeON + iLength
-            }
-            else if(currentState == 0)
-              {
-                notactiveUserTime = notactiveUserTime + iLength
-                computerTimeON = computerTimeON + iLength
-              }
-            else if(currentState = 10)
-              {
-                computerTimeOFF = computerTimeOFF + iLength
-              }
-            else
-              {
-                otherNonActive = otherNonActive + iLength
-                computerTimeON = computerTimeON + iLength
-              }
-
-            startInterval = endInterval
-            currentState = intervals[i].idleTime
-        }
-
-        //for the last point - 'current state'
-        iLength = end_interval - startInterval
-        // console.log('length', intervalLength)
-
-        if(currentState == 1)
-        {
-            activeUserTime = activeUserTime + iLength
-            computerTimeON = computerTimeON + iLength
-        }
-        else if(currentState == 0)
-        {
-            notactiveUserTime = notactiveUserTime + iLength
-            computerTimeON = computerTimeON + iLength
-        }
-        else if(currentState = 10)
-        {
-            computerTimeOFF = computerTimeOFF + iLength
-        }
-        else
-        {
-            otherNonActive = otherNonActive + iLength
-            computerTimeON = computerTimeON + iLength
-        }
-  }
-
-
-
-  return {"startInterval" : start_interval, "endInterval" : end_interval, "countInterval" : count,
-                                     "activeUserTime":activeUserTime,"notactiveUserTime":notactiveUserTime,"otherNonActive":otherNonActive,
-                                     "computerTimeON":computerTimeON,"computerTimeOFF":computerTimeOFF,"totalStates":totalStates,"lastState":currentState}
-
-}
-
 function timestampToDate(timestamp){
   var date = new Date(timestamp*1000);
   // Year
@@ -318,85 +200,247 @@ function timestampToDate(timestamp){
 
 document.getElementById('minutesCard').onclick = function(){
   console.log('Creating 30-minute plot')
-  createDailyChart(intervals,'min')
+  createDailyChart(states,'min')
 }
 
 document.getElementById('hoursCard').onclick = function(){
   console.log('Creating 2-hours plot')
-  createDailyChart(intervals,'hour')
+  createDailyChart(states,'hour')
 }
 
 
 document.getElementById('totalCard').onclick = function(){
   console.log('Creating total data plot')
-  createDailyChart(intervals,'total')
+  createDailyChart(states,'total')
+}
+
+function intervalSummary(states,start_interval,end_interval,count,firstState){
+
+  //for debugging purposes
+  var intervalStartedState = firstState
+
+
+  var currentState
+
+  var startInterval = 0
+  var endInterval = end_interval
+  //recreating idle timeline
+  // total active computer usage time
+  var activeUserTime=0
+  //total nonactive computer usage time
+  var notactiveUserTime=0
+  //total other nonactive
+  var otherNonActive = 0
+
+  var iLength = 0
+  var computerTimeON = 0
+  var computerTimeOFF = 0
+
+  var totalStates = 0
+
+  //empty interval - in this case only take the last state and add 15 minutes to it
+  if(states.length == 0)
+  {
+
+    iLength = 15*60
+
+    if(intervalStartedState == 1)
+    {
+        activeUserTime = activeUserTime + iLength
+        computerTimeON = computerTimeON + iLength
+    }
+    else if(intervalStartedState == 0)
+      {
+        notactiveUserTime = notactiveUserTime + iLength
+        computerTimeON = computerTimeON + iLength
+      }
+    else if(intervalStartedState = 10)
+      {
+        computerTimeOFF = computerTimeOFF + iLength
+      }
+    else
+      {
+        otherNonActive = otherNonActive + iLength
+        computerTimeON = computerTimeON + iLength
+      }
+
+  }
+  else {
+        totalStates = states.length
+        // console.log('total data intervals', totalStates)
+
+        for (i=states.length-1; i>=0; i--){
+            // console.log('Step:', i)
+            // console.log('current state', currentState)
+            // console.log('next state', intervals[i].idleTime)
+            currentState = states[i].idleTime
+            startInterval = states[i].collectionTime
+            iLength = endInterval - startInterval
+            // console.log('length', intervalLength)
+
+            if(currentState == 1)
+            {
+                activeUserTime = activeUserTime + iLength
+                computerTimeON = computerTimeON + iLength
+            }
+            else if(currentState == 0)
+              {
+                notactiveUserTime = notactiveUserTime + iLength
+                computerTimeON = computerTimeON + iLength
+              }
+            else if(currentState = 10)
+              {
+                computerTimeOFF = computerTimeOFF + iLength
+              }
+            else
+              {
+                otherNonActive = otherNonActive + iLength
+                computerTimeON = computerTimeON + iLength
+              }
+
+            endInterval = startInterval
+
+        }
+
+        //for the last point - 'current state'
+        iLength = endInterval - start_interval
+        // console.log('length', intervalLength)
+
+        if(intervalStartedState == 1)
+        {
+            activeUserTime = activeUserTime + iLength
+            computerTimeON = computerTimeON + iLength
+        }
+        else if(intervalStartedState == 0)
+        {
+            notactiveUserTime = notactiveUserTime + iLength
+            computerTimeON = computerTimeON + iLength
+        }
+        else if(intervalStartedState = 10)
+        {
+            computerTimeOFF = computerTimeOFF + iLength
+        }
+        else
+        {
+            otherNonActive = otherNonActive + iLength
+            computerTimeON = computerTimeON + iLength
+        }
+  }
+
+
+
+  return {"startInterval" : start_interval, "endInterval" : end_interval, "countInterval" : count,
+                                     "activeUserTime":activeUserTime,"notactiveUserTime":notactiveUserTime,"otherNonActive":otherNonActive,
+                                     "computerTimeON":computerTimeON,"computerTimeOFF":computerTimeOFF,"states":states,"statesLength":totalStates,"intervalStartedState":intervalStartedState, "lastState":currentState}
+
 }
 
 
-function transformIntervalArray(intervals){
 
-  // sort the intervals as sometimes app OFF is saved after app ON
-  intervals = intervals.sort(function(a, b) {
-      return a.collectionTime - b.collectionTime;
-  });
-  // final array
+
+function transformIntervalArray(states){
+
+  // array that will contain the calculated intervals
   var intervalArray = {
       intervals: []
   };
+  //15 minutes intervals summary
   var intervalLength = 15*60
-  //start measurement today
-  //total computer sleep time/lock
-  var startInterval =  startMeasurement = intervals[0].collectionTime
-  // take the last measurement
-  var endMeasurement = intervals[intervals.length - 1].collectionTime
-  var endInterval = startMeasurement + intervalLength - 1
 
-  //while block
-  count = 0
-  while(startMeasurement <= endMeasurement){
-
-
-    var helpA = intervals.filter(function (el) {
-      return el.collectionTime <= endInterval &&
-             el.collectionTime >= startMeasurement
-    });
+  //get current timestamp
+  var end = new Date();
+  var now = Math.floor((end.getTime() - end.getTimezoneOffset() *  60000)/1000)
+  var dayStart
+  // sort the intervals as sometimes app OFF is saved after app ON
+  states = states.sort(function(a, b) {
+      return a.collectionTime - b.collectionTime;
+  });
 
 
-    // console.log('Current interval',startMeasurement,endInterval, helpA)
-    //no data in the current interval, just take the last interval ending state, and add 15 minutes to it.
-    if(helpA.length == 0)
+
+  var start = new Date();
+  start.setHours(0,0,0,0);
+  dayStart = Math.floor((start.getTime() - start.getTimezoneOffset() *  60000)/1000)
+
+
+
+  // these two are like interval slider start and end point
+  var intervalEnd = now
+  var intervalStart = intervalEnd - intervalLength
+  intervalCounter = 0;
+  // //no data - can happen at the beginning of the day
+  // if(intervals.length == 0)
+  // {
+  //
+  // }
+  // //
+  // else{}
+    while(intervalEnd>=dayStart)
     {
-      // console.log('no data in interval ', startMeasurement, ' : ', endInterval)
-      intervalArray.intervals.push(intervalSummary(helpA,startMeasurement,endInterval,count, intervalArray.intervals[intervalArray.intervals.length-1].lastState))
-    }
-    //do the standard calculation
-    else{
-      //needed for the last state calculation
-      if(intervalArray.intervals.length == 0){
-        intervalArray.intervals.push(intervalSummary(helpA,startMeasurement,endInterval,count, intervals[0].idleTime))
-        // console.log('intervalArray' , intervalArray)
-      }
-      else{
-        intervalArray.intervals.push(intervalSummary(helpA,startMeasurement,endInterval,count, intervalArray.intervals[intervalArray.intervals.length-1].lastState))
-      }
+          if(intervalStart<dayStart)
+          {
+            intervalStart = dayStart
+          }
 
+
+          else{
+          //slice the interval
+          var helpA = states.filter(function (el) {
+            return el.collectionTime <= intervalEnd &&
+                   el.collectionTime >= intervalStart
+          });
+
+          if(helpA.length !=0)
+            helpA = helpA.sort(function(a, b) {
+                return a.collectionTime - b.collectionTime;
+            });
+
+            //initial calculation
+            if(intervalArray.intervals.length == 0){
+
+              intervalArray.intervals.push(intervalSummary(helpA,intervalStart,intervalEnd,intervalCounter, states[states.length - helpA.length - 1].idleTime))
+            }
+            else {
+              ia = intervalArray.intervals
+              calculatedStatesSoFar = ia.reduce(function (sum, ia) {
+                  return sum + ia.statesLength;
+              }, 0);
+
+              indexPreviousState = states.length - helpA.length - calculatedStatesSoFar - 1
+
+              //we have came to the first recorded state of the day
+              if(indexPreviousState==-1)
+              {
+                  intervalArray.intervals.push(intervalSummary(helpA,intervalStart,intervalEnd,intervalCounter,10))
+
+              }
+              else{
+                  intervalArray.intervals.push(intervalSummary(helpA,intervalStart,intervalEnd,intervalCounter,states[indexPreviousState].idleTime))
+              }
+            }
+
+            intervalCounter = intervalCounter + 1
+            intervalEnd = intervalEnd - intervalLength - 1
+            intervalStart = intervalEnd - intervalLength
+          }
     }
 
-    startMeasurement = endInterval + 1
-    endInterval = startMeasurement + intervalLength - 1
-    count = count + 1
-  }
-  console.log('input interval length ', intervals.length)
-  console.log('intervalArray' , intervalArray)
+  console.log('Input States Length ', states.length)
+  console.log('Input States', states)
+  console.log('Transformed Interval' , intervalArray)
   return intervalArray
+
+
 }
 
 
-function fillCards(intervals)
+function fillCards(states)
 {
-  intervalArray = transformIntervalArray(intervals)
+  console.log('Fill Cards ')
+  //first calculate the intervals based on total , will do slicing based on the card below
+  intervalArray = transformIntervalArray(states)
   //MINUTES
-  minArray = intervalArray.intervals.slice(intervalArray.intervals.length-2)
+  minArray = intervalArray.intervals.slice(0,2)
 
   console.log('minArray', minArray)
   document.getElementById('minActive').innerHTML = 'Active ' + Math.floor(minArray.reduce(function (sum, minArray) {return sum + minArray.activeUserTime;
@@ -404,14 +448,14 @@ function fillCards(intervals)
 
   document.getElementById('minInactive').innerHTML  ='Idle ' + Math.floor(minArray.reduce(function (sum, minArray) {
       return sum + minArray.notactiveUserTime + minArray.otherNonActive;
-  }, 0)/60);
+  }, 0)/60) + 'min';
 
   document.getElementById('minOff').innerHTML = 'OFF ' +  Math.floor(minArray.reduce(function (sum, minArray) {
       return sum + minArray.computerTimeOFF;
-  }, 0)/60);
+  }, 0)/60) + 'min';
 
   //HOURS
-  hourArray = intervalArray.intervals.slice(intervalArray.intervals.length-8)
+  hourArray = intervalArray.intervals.slice(0,8)
   console.log('hourArray', hourArray)
 
   // console.log('minArray', minArray)
@@ -447,68 +491,61 @@ function fillCards(intervals)
 
 }
 
-function createDailyChart(intervals,label){
-          // cutting the size of the interval based on the plot selection
-          var helpintervals
+function createDailyChart(states,label){
+          intervalArray = transformIntervalArray(states)
+          // var ia
           if(label == 'min'){
             document.getElementById("minutesCard").style["boxShadow"] = "0 8px 8px 0 rgba(0, 0, 0, 0.2)";
             document.getElementById("hoursCard").style["boxShadow"] = "none";
             document.getElementById("totalCard").style["boxShadow"] = "none";
-            var now = new Date()
-            endMeasurement = Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000)
-            // -30 minutes
-            startMeasurement = endMeasurement - 30*60
-            console.log('ploting',startMeasurement,endMeasurement)
-              helpintervals  = intervals.filter(function (el) {
-              return el.collectionTime <= endMeasurement &&
-                     el.collectionTime >= startMeasurement
-            });
+            intervalArray = intervalArray.intervals.slice(0,2)
+
+            // console.log('AI',intervalArray.intervals.length)
+
           }
 
           else if(label == 'hour'){
             document.getElementById("hoursCard").style["boxShadow"] = "0 8px 8px 0 rgba(0, 0, 0, 0.2)";
             document.getElementById("minutesCard").style["boxShadow"] = "none";
             document.getElementById("totalCard").style["boxShadow"] = "none";
-            var now = new Date()
-            endMeasurement = Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000)
-            // -2h
-            startMeasurement = endMeasurement - 30*60*4
-            console.log('ploting',startMeasurement,endMeasurement)
-            helpintervals = intervals.filter(function (el) {
-              return el.collectionTime <= endMeasurement &&
-                     el.collectionTime >= startMeasurement
-            });
+            // console.log('AI',ia.intervals)
+            intervalArray = intervalArray.intervals.slice(0,8)
+
+
           }
 
           else if(label == 'total'){
             document.getElementById("totalCard").style["boxShadow"] = "0 8px 8px 0 rgba(0, 0, 0, 0.2)";
             document.getElementById("hoursCard").style["boxShadow"] = "none";
             document.getElementById("minutesCard").style["boxShadow"] = "none";
-            helpintervals = intervals
 
+            intervalArray = intervalArray.intervals
           }
 
 
-          document.getElementById('lastUpdate').innerHTML = 'Last Updated: ' + timestampToDate(intervals[intervals.length - 1].collectionTime)
-          // the interval array as needed for the plot
-          console.log('helpintervals - ',label, ':',  helpintervals)
-          intervalArray = transformIntervalArray(helpintervals)
-
+          document.getElementById('lastUpdate').innerHTML = 'Last Updated: ' + timestampToDate(states[states.length - 1].collectionTime)
+          console.log('Plotting Interval Array', intervalArray)
             // For chart 2
             var intervalTime = 60*15
             var timestamps = []
             var active_percentages = []
             var chartData = []
-            for (i=0,l=intervalArray.intervals.length; i<l; i++){
+            for (var i = intervalArray.length - 1; i >= 0; i--){
                   // console.log('interval', i, 'perc active', (intervalArray.intervals[i].activeUserTime/intervalTime)*100)
-                  active_percentages.push(Math.floor((intervalArray.intervals[i].activeUserTime/intervalTime)*100))
+                  active_percentages.push(Math.floor((intervalArray[i].activeUserTime/intervalTime)*100))
                   // console.log('start', timestampToDate(intervalArray.intervals[i].startInterval), 'end', timestampToDate(intervalArray.intervals[i].endInterval))
                   // in milliseconds for chartjs
-                  timestamps.push((intervalArray.intervals[i].endInterval - 3600)*1000)
+                  timestamps.push((intervalArray[i].startInterval - 3600)*1000)
             }
+
+            active_percentages.push(Math.floor((intervalArray[0].activeUserTime/intervalTime)*100))
+            timestamps.push((intervalArray[0].endInterval - 3600)*1000)
+
+            console.log('active_percentages:',active_percentages)
+            console.log('timestamps:',timestamps)
+
             var ctx = document.getElementById('myChart2').getContext('2d');
-            // document.getElementById('myChart2').style.height = "300px"
-            // document.getElementById('myChart2').style.width = "300px"
+
             if (myChart) {
               myChart.destroy();
             }
