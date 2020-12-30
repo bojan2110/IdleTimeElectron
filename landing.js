@@ -571,7 +571,14 @@ function createDailyChart(states,label){
                                               quarter: 'h:mm a'
                                           }
                                       }
-                                  }]
+                                  }],
+                                  yAxes: [{
+                                        ticks: {
+                                            max: 100,
+                                            min: 0,
+                                            stepSize: 10
+                                        }
+                                    }]
                                 },
 
                                 plugins: {
