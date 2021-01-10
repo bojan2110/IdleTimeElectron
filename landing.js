@@ -7,6 +7,8 @@ const path = require('path');
 const os = require('os');
 const { ipcRenderer } = window.require('electron');
 var Chart = require('chart.js');
+const dialog = require('electron').remote.dialog
+
 
 //global variables
 var myChart
@@ -26,8 +28,11 @@ fs.readFile(jsonfile, 'utf8', (err, userString) => {
           // all functions called here
           appClosePost(user.username,computerName,user.appClosingTime)
           appStartPost(user.username,computerName)
+          //this will set the interval
           monitorDailyState(user.username,computerName)
           postAdditionalComputerStates(user.username,computerName)
+          get_display_data(user.username,computerName)
+          //register the user click event
           ipcRendererEvents(user.username,computerName)
 
         }
@@ -75,66 +80,67 @@ async function appClosePost(username,computerName,time) {
     }
 }
 
+function get_display_data(username,computerName)
+{
+  //make the start and end interval - take the whole day data (until the current point)
+  var start = new Date();
+  start.setHours(0,0,0,0);
+  var end = new Date();
+  var startdate = Math.floor((start.getTime() - start.getTimezoneOffset() *  60000)/1000)
+  var enddate = Math.floor((end.getTime() - end.getTimezoneOffset() *  60000)/1000)
 
+  //call the api
+  var apiCall = 'https://health-iot.labs.vu.nl/api/idlestate/user/'+ username+'/device/'+ computerName
+  +'/startdate/'+ startdate+'/enddate/'+ enddate
+
+  console.log('Getting daily data', apiCall)
+
+  axios.get(apiCall)
+    .then(function (response) {
+      // handle success
+      states = response.data.intervals
+      //no daily data to show on the plot - this is the case when no data has been collected so far
+      if(states.length == 0)
+      {
+        //THIS MEANS THAT THE COMPUTER WAS OFF UNTIL THIS POINT
+        // createDailyChart([],'nodata')
+      }
+      else{
+
+          //deciding what data to obtain (based on highlighted card by the user). Total is the default
+          var label
+          if(getComputedStyle(document.querySelector('.mcard'), "boxShadow").boxShadow!='none')
+            label='min'
+          else if(getComputedStyle(document.querySelector('.hcard'), "boxShadow").boxShadow!='none')
+            label='hour'
+          else
+            label='total'
+
+
+          createDailyChart(states,label)
+          fillCards(states)
+      }
+
+
+    })
+    .catch(function (error) {
+      // handle error
+      console.log(error);
+    })
+    .then(function () {
+      // always executed
+    });
+}
 
 function ipcRendererEvents(username,computerName){
   console.log('User clicks icon...')
   //Display latest idle state data
   ipcRenderer.on('MSG_SHOW_PLOT', (event, data) => {
-
-    //make the start and end interval - take the whole day data (until the current point)
-    var start = new Date();
-    start.setHours(0,0,0,0);
-    var end = new Date();
-    var startdate = Math.floor((start.getTime() - start.getTimezoneOffset() *  60000)/1000)
-    var enddate = Math.floor((end.getTime() - end.getTimezoneOffset() *  60000)/1000)
-
-    //call the api
-    var apiCall = 'https://health-iot.labs.vu.nl/api/idlestate/user/'+ username+'/device/'+ computerName
-    +'/startdate/'+ startdate+'/enddate/'+ enddate
-
-    console.log('Getting daily data', apiCall)
-
-    axios.get(apiCall)
-      .then(function (response) {
-        // handle success
-        states = response.data.intervals
-        //no daily data to show on the plot - this is the case when no data has been collected so far
-        if(states.length == 0)
-        {
-          //THIS MEANS THAT THE COMPUTER WAS OFF UNTIL THIS POINT
-          // createDailyChart([],'nodata')
-        }
-        else{
-
-            //deciding what data to obtain (based on highlighted card by the user). Total is the default
-            var label
-            if(getComputedStyle(document.querySelector('.mcard'), "boxShadow").boxShadow!='none')
-              label='min'
-            else if(getComputedStyle(document.querySelector('.hcard'), "boxShadow").boxShadow!='none')
-              label='hour'
-            else
-              label='total'
-
-
-            createDailyChart(states,label)
-            fillCards(states)
-        }
-
-
-      })
-      .catch(function (error) {
-        // handle error
-        console.log(error);
-      })
-      .then(function () {
-        // always executed
-      });
-
-    });
+      get_display_data(username,computerName)
+  });
 
   ipcRenderer.on('app-close', _ => {
-        console.log('renderer closing')
+        console.log('im in app-close')
         // makePostRequest(username,computerName,10)
         fs.readFile(jsonfile, 'utf8', (err, userString) => {
             if (err) {
@@ -185,7 +191,20 @@ function timestampToDate(timestamp){
   // Day
   var day = date.getDate();
   // Hours
-  var hours = date.getHours() -1;
+
+  var hours
+  if(date.getHours() == 0)
+  {
+    hours = 23
+  }
+  else{
+    hours = date.getHours() -1;
+  }
+
+  if(0<=hours && hours<=9)
+    hours = "0" + hours
+
+
   // Minutes
   var minutes = "0" + date.getMinutes();
   // Seconds
@@ -194,8 +213,58 @@ function timestampToDate(timestamp){
   var convdataTime = day+'-'+month+'-'+year+' '+hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
 
   return convdataTime
-
 }
+
+document.getElementById('logout_user').onclick = function(){
+  var choice = dialog.showMessageBox(
+              electron.getCurrentWindow(),
+              {
+                  type: 'question',
+                  buttons: ['Yes', 'No'],
+                  title: 'Confirm',
+                  message: 'Quit Computer Time Tracker?'
+              });
+              choice.then(function(res){
+                    // 0 for Yes
+                   if(res.response== 0){
+
+
+                    fs.readFile(jsonfile, 'utf8', (err, userString) => {
+                        if (err) {
+                            console.log("Error reading file from disk:", err)
+                            return
+                        }
+                        try {
+                              var now = new Date();
+                              var user = JSON.parse(userString)
+                              user.login = false
+                              user.username = user.username
+                              user.appClosingTime = Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000)
+                              // user.functionPlace = "ipcRenderer app-close"
+                              fs.writeFile(jsonfile, JSON.stringify(user), (err) => {
+                                      if (err)
+                                      {
+                                        console.log('Error writing file:', err)
+                                      }
+                                      else{
+                                        location.href = 'landing.html'
+                                      }
+                              })
+                              ipcRenderer.send('closed');
+                            }
+                       catch(err) {
+                              console.log('Error parsing JSON string:', err)
+                          }
+                    })
+
+                   }
+                   if(res.response== 1){
+                    console.log('NO')
+
+                   }
+                 })
+}
+
 
 
 document.getElementById('minutesCard').onclick = function(){
@@ -381,8 +450,6 @@ function transformIntervalArray(states){
           {
             intervalStart = dayStart
           }
-
-
           else{
           //slice the interval
           var helpA = states.filter(function (el) {
@@ -397,8 +464,15 @@ function transformIntervalArray(states){
 
             //initial calculation
             if(intervalArray.intervals.length == 0){
+              //t
+              if(states.length == helpA.length)
+              {
+                intervalArray.intervals.push(intervalSummary(helpA,intervalStart,intervalEnd,intervalCounter, 10))
 
-              intervalArray.intervals.push(intervalSummary(helpA,intervalStart,intervalEnd,intervalCounter, states[states.length - helpA.length - 1].idleTime))
+              }
+              else{
+                intervalArray.intervals.push(intervalSummary(helpA,intervalStart,intervalEnd,intervalCounter, states[states.length - helpA.length - 1].idleTime))
+              }
             }
             else {
               ia = intervalArray.intervals
@@ -443,50 +517,52 @@ function fillCards(states)
   minArray = intervalArray.intervals.slice(0,2)
 
   console.log('minArray', minArray)
-  document.getElementById('minActive').innerHTML = 'Active ' + Math.floor(minArray.reduce(function (sum, minArray) {return sum + minArray.activeUserTime;
+
+  document.getElementById('minActive').innerHTML = 'Active ' + Math.round(minArray.reduce(function (sum, minArray) {return sum + minArray.activeUserTime;
   }, 0)/60) + 'min';
 
-  document.getElementById('minInactive').innerHTML  ='Idle ' + Math.floor(minArray.reduce(function (sum, minArray) {
-      return sum + minArray.notactiveUserTime + minArray.otherNonActive;
+  document.getElementById('minInactive').innerHTML  ='Idle ' + Math.round(minArray.reduce(function (sum, minArray) {
+      return sum + minArray.notactiveUserTime + minArray.otherNonActive + minArray.computerTimeOFF;
   }, 0)/60) + 'min';
 
-  document.getElementById('minOff').innerHTML = 'OFF ' +  Math.floor(minArray.reduce(function (sum, minArray) {
-      return sum + minArray.computerTimeOFF;
-  }, 0)/60) + 'min';
+
+  // document.getElementById('minOff').innerHTML = 'OFF ' +  Math.floor(minArray.reduce(function (sum, minArray) {
+  //     return sum + minArray.computerTimeOFF;
+  // }, 0)/60) + 'min';
 
   //HOURS
   hourArray = intervalArray.intervals.slice(0,8)
   console.log('hourArray', hourArray)
 
   // console.log('minArray', minArray)
-  document.getElementById('hoursActive').innerHTML = 'Active ' + Math.floor(hourArray.reduce(function (sum, hourArray) {
+  document.getElementById('hoursActive').innerHTML = 'Active ' + Math.round(hourArray.reduce(function (sum, hourArray) {
       return sum + hourArray.activeUserTime;
   }, 0)/60) + 'min';
 
-  document.getElementById('hoursInactive').innerHTML  = 'Idle ' + Math.floor(hourArray.reduce(function (sum, hourArray) {
-      return sum + hourArray.notactiveUserTime + hourArray.otherNonActive;
+  document.getElementById('hoursInactive').innerHTML  = 'Idle ' + Math.round(hourArray.reduce(function (sum, hourArray) {
+      return sum + hourArray.notactiveUserTime + hourArray.otherNonActive + hourArray.computerTimeOFF;
   }, 0)/60) + 'min';
 
-  document.getElementById('hoursOff').innerHTML  =  'OFF ' +Math.floor(hourArray.reduce(function (sum, hourArray) {
-      return sum + hourArray.computerTimeOFF;
-  }, 0)/60) + 'min';
+  // document.getElementById('hoursOff').innerHTML  =  'OFF ' +Math.floor(hourArray.reduce(function (sum, hourArray) {
+  //     return sum + hourArray.computerTimeOFF;
+  // }, 0)/60) + 'min';
 
 
   // TOTAL DAY SUMMARY
   totalArray = intervalArray.intervals
   console.log('totalArray', totalArray)
 
-  document.getElementById('totalActive').innerHTML = 'Active ' + Math.floor(totalArray.reduce(function (sum, totalArray) {
-      return sum + totalArray.activeUserTime;
+  document.getElementById('totalActive').innerHTML = 'Active ' + Math.round(totalArray.reduce(function (sum, totalArray) {
+      return sum + totalArray.activeUserTime+1;
   }, 0)/60) + 'min';
 
-  document.getElementById('totalInactive').innerHTML  ='Idle ' +  Math.floor(totalArray.reduce(function (sum, totalArray) {
-      return sum + totalArray.notactiveUserTime + totalArray.otherNonActive;
+  document.getElementById('totalInactive').innerHTML  ='Idle ' +  Math.round(totalArray.reduce(function (sum, totalArray) {
+      return sum + totalArray.notactiveUserTime + totalArray.otherNonActive + totalArray.computerTimeOFF;
   }, 0)/60) + 'min';
 
-  document.getElementById('totalOff').innerHTML  =  'OFF ' + Math.floor(totalArray.reduce(function (sum, totalArray) {
-      return sum + totalArray.computerTimeOFF;
-  }, 0)/60) + 'min';
+  // document.getElementById('totalOff').innerHTML  =  'OFF ' + Math.floor(totalArray.reduce(function (sum, totalArray) {
+  //     return sum + totalArray.computerTimeOFF;
+  // }, 0)/60) + 'min';
 
 
 }
@@ -495,7 +571,7 @@ function createDailyChart(states,label){
           intervalArray = transformIntervalArray(states)
           // var ia
           if(label == 'min'){
-            document.getElementById("minutesCard").style["boxShadow"] = "0 8px 8px 0 rgba(0, 0, 0, 0.2)";
+            document.getElementById("minutesCard").style["boxShadow"] = "0 0px 8px 4px rgba(241, 158, 49, 0.4)";
             document.getElementById("hoursCard").style["boxShadow"] = "none";
             document.getElementById("totalCard").style["boxShadow"] = "none";
             intervalArray = intervalArray.intervals.slice(0,2)
@@ -505,7 +581,7 @@ function createDailyChart(states,label){
           }
 
           else if(label == 'hour'){
-            document.getElementById("hoursCard").style["boxShadow"] = "0 8px 8px 0 rgba(0, 0, 0, 0.2)";
+            document.getElementById("hoursCard").style["boxShadow"] = "0 0px 8px 4px rgba(241, 158, 49, 0.4)";
             document.getElementById("minutesCard").style["boxShadow"] = "none";
             document.getElementById("totalCard").style["boxShadow"] = "none";
             // console.log('AI',ia.intervals)
@@ -515,7 +591,7 @@ function createDailyChart(states,label){
           }
 
           else if(label == 'total'){
-            document.getElementById("totalCard").style["boxShadow"] = "0 8px 8px 0 rgba(0, 0, 0, 0.2)";
+            document.getElementById("totalCard").style["boxShadow"] = "0 0px 8px 4px rgba(241, 158, 49, 0.4)";
             document.getElementById("hoursCard").style["boxShadow"] = "none";
             document.getElementById("minutesCard").style["boxShadow"] = "none";
 
@@ -577,7 +653,10 @@ function createDailyChart(states,label){
                                             max: 100,
                                             min: 0,
                                             stepSize: 10
-                                        }
+                                        },scaleLabel: {
+                                            display: true,
+                                            labelString: 'Active Time (%)'
+                                          }
                                     }]
                                 },
 

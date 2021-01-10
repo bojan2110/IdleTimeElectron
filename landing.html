@@ -2,73 +2,142 @@
 <html>
   <head>
     <style>
-* {
-  box-sizing: border-box;
-}
+          * {
+            box-sizing: border-box;
+          }
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
+          body {
+            font-family: Arial, Helvetica, sans-serif;
+          }
 
-/* Float four columns side by side */
-.column {
-  float: left;
-  width: 50%;
-  padding: 0 10px;
-}
+          /* Float four columns side by side */
+          .column {
+            float: left;
+            width: 50%;
+            padding: 0 10px;
+          }
 
-.chart{
-  float: center;
-  padding: 20px 20px;
+          .chart{
+            float: center;
+            padding: 10px 10px;
 
-}
-/* Remove extra left and right margins, due to padding */
-.row {margin: 0 -5px;}
+          }
+          /* Remove extra left and right margins, due to padding */
+          .row {margin: 0 -5px;}
 
-.image {max-height:160%; max-width:100%;}
+          .image {max-height:120%; max-width:100%;}
 
-/* Clear floats after the columns */
-.row:after {
-  content: "";
-  display: table;
-  clear: both;
-}
+          /* Clear floats after the columns */
+          .row:after {
+            content: "";
+            display: table;
+            clear: both;
+          }
 
-.bottomText{
- float:right;
- font-family: Helvetica;
- color:#D3D3D3;
-}
-/* Responsive columns */
-/* @media screen and (max-width: 600px) {
-  .column {
-    width: 100%;
-    display: block;
-    margin-bottom: 20px;
-  }
-} */
+          .bottomText{
+           float:right;
+           font-family: Helvetica;
+           color:#D3D3D3;
+          }
 
-/* Style the counter cards */
-.mcard,.hcard,.tcard {
-  padding: 6px;
-  text-align: center;
-  background-color: #f1f1f1;
-}
-</style>
+          .logout{
+           float:right;
+           width: 16px;
+           height: 16px;
+           margin-right: 10px;
+          cursor: pointer;
+           /* margin-left:  15px;I
+           margin-top: 40px; */
+          }
+
+
+          /* Style the counter cards */
+          .mcard,.hcard,.tcard {
+            padding: 6px;
+            text-align: center;
+            background-color: #f1f1f1;
+          }
+
+          /* FOR the logout button */
+          .btn {
+            background-color: DodgerBlue;
+            border: none;
+            color: white;
+            padding: 12px 16px;
+            font-size: 16px;
+            cursor: pointer;
+          }
+
+          /* Darker background on mouse-over */
+          .btn:hover {
+            background-color: RoyalBlue;
+          }
+
+
+          .tooltip {
+            float:center;
+            position: relative;
+            display: inline-block;
+          }
+
+          .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 250px;
+            background-color: #F19E31;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 5px;
+            position: absolute;
+            z-index: 1;
+            top: 150%;
+            left: 50%;
+            margin-left: -60px;
+          }
+
+          .tooltip .tooltiptext::after {
+            content: "";
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: transparent transparent black transparent;
+          }
+
+          .tooltip:hover .tooltiptext {
+            visibility: visible;
+          }
+
+
+    </style>
+
+
     <meta charset="UTF-8">
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src https://health-iot.labs.vu.nl">
     <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src https://health-iot.labs.vu.nl">
-    <title>Hello World!</title>
+    <title>Computer Time Tracker</title>
+
   </head>
   <body>
-    <!-- <h1> Events: <span id="event">No new event</span></h1>
-    <h1> Current State: <span id="state"></span></h1>
-    <h1> Idle time: <span id="idletime"></span></h1> -->
-  <!-- https://codesandbox.io/s/htwhp?file=/src/index.js -->
 
+    <div>
+      <input id="logout_user" type="image" class="logout" src="logout.png"/>
+
+      <div class="tooltip">Computer Time Tracker
+          <span class="tooltiptext"> This app displays your daily computer usage time.
+            It  collects data on the computer state (active/idle) together with a timestamp of the recorded state and computer name information.
+             Thank you for participating in our experiment.
+           </span>
+    </div>
+      <!-- <input id="about_app" type="image" class="tooltip"  src="about.png">
+        <span class="tooltiptext">Tooltip text </span>
+      </input> -->
 
       <canvas class="chart", id="myChart2" width="300" height="300"></canvas>
+    </div>
 
       <!-- <div id="chartdiv"></div> -->
       <!-- <h1> Total time today: <span id="timeToday"></span></h1> -->
@@ -79,7 +148,7 @@ body {
                 <h3>Last 30 mins</h3>
                 <p id="minActive">Active</p>
                 <p id="minInactive">Idle</p>
-                <p id="minOff">OFF</p>
+                <!-- <p id="minOff">OFF</p> -->
               </div>
             </div>
 
@@ -88,7 +157,7 @@ body {
                 <h3>Last 2 hours</h3>
                 <p id="hoursActive">Active</p>
                 <p id="hoursInactive">Idle</p>
-                <p id="hoursOff">OFF</p>
+                <!-- <p id="hoursOff">OFF</p> -->
 
               </div>
             </div>
@@ -100,19 +169,21 @@ body {
                 <h3>Total Today</h3>
                 <p id="totalActive">Active</p>
                 <p id="totalInactive">Idle</p>
-                <p id="totalOff">OFF</p>
+                <!-- <p id="totalOff">OFF</p> -->
 
               </div>
             </div>
 
             <div class="column">
               <div class="card">
-                <img class="image" src="sitting1.png" alt="Girl in a jacket">
+                <img class="image" src="sitting1.png" alt="CTT Icon">
               </div>
             </div>
           </div>
     </div>
+
     <h6 class="bottomText" id="lastUpdate" >Last updated: </h6>
+
     <!-- You can also require other files to run in this process -->
     <script src="./landing.js"></script>
   </body>

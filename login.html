@@ -7,20 +7,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'">
   <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'self'">
-  <title>Idle Time Logger</title>
+  <title>Computer Time Tracker</title>
   <link rel="stylesheet" href="login.css">
   <script defer src="./login.js"></script>
 </head>
 
 <body>
   <main id="main-holder">
-    <h1 id="login-header">Login</h1>
 
     <div id="login-error-msg-holder">
       <p id="login-error-msg">Error email not match</p>
     </div>
 
     <form id="login-form">
+      <h3 id="login-header">Computer Time Tracker</h3>
+      <img  src="sitting1.png" class="image" alt="CTT Icon">
       <input type="text" name="email" id="email-field" class="login-form-field" placeholder="Email">
       <input type="text" name="confirmemail" id="confirm-email-field" class="login-form-field" placeholder="Confirm Email">
       <input type="submit" value="Login" id="login-form-submit">

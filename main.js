@@ -30,7 +30,7 @@ function createWindow () {
   // Create the browser window.
  mainWindow = new BrowserWindow({
     width: 350,
-    height: 750,
+    height: 715,
     webPreferences: {
       nodeIntegration : true,
       worldSafeExecuteJavaScript: true,
@@ -39,7 +39,7 @@ function createWindow () {
     show: false,
     frame: false,
     fullscreenable: false,
-    resizable: true
+    resizable: false
   })
 
  mainWindow.loadFile('login.html')
@@ -122,6 +122,7 @@ async function makePostRequest(username,computerName) {
 
 
 function saveCloseState(place){
+  console.log('im in saveCloseState with place:', place)
   const jsonfile = path.join(__dirname,'./electronuser.json')
 
   fs.readFile(jsonfile, 'utf8', (err, userString) => {
@@ -131,6 +132,7 @@ function saveCloseState(place){
       }
       try {
             var now = new Date();
+            console.log('user login details: ',userString)
             var user = JSON.parse(userString)
             user.login = true
             user.username = user.username
@@ -160,6 +162,7 @@ function saveCloseState(place){
 // explicitly with Cmd + Q.
 
 app.on('before-quit', function () {
+  console.log('closing electron:before-quit')
 
   saveCloseState("before-quit")
 
@@ -167,7 +170,7 @@ app.on('before-quit', function () {
 
 
 app.on('window-all-closed', function () {
-  console.log('closing electron')
+  console.log('closing electron : window-all-closed')
 
 
   saveCloseState("window-all-closed")
