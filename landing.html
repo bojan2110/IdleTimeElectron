@@ -25,7 +25,7 @@
           /* Remove extra left and right margins, due to padding */
           .row {margin: 0 -5px;}
 
-          .image {max-height:120%; max-width:100%;}
+          .image {max-height:100%; max-width:100%;}
 
           /* Clear floats after the columns */
           .row:after {
@@ -45,7 +45,7 @@
            width: 16px;
            height: 16px;
            margin-right: 10px;
-          cursor: pointer;
+           cursor: pointer;
            /* margin-left:  15px;I
            margin-top: 40px; */
           }
@@ -53,6 +53,7 @@
 
           /* Style the counter cards */
           .mcard,.hcard,.tcard {
+            cursor: pointer;
             padding: 6px;
             text-align: center;
             background-color: #f1f1f1;
@@ -110,6 +111,13 @@
             visibility: visible;
           }
 
+          input:hover {
+              cursor: pointer;
+          }
+
+          ::-webkit-scrollbar {
+          display: none;
+          }
 
     </style>
 
@@ -118,7 +126,7 @@
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src https://health-iot.labs.vu.nl">
     <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src https://health-iot.labs.vu.nl">
-    <title>Computer Time Tracker</title>
+    <title>Screen Time Tracker</title>
 
   </head>
   <body>
@@ -126,15 +134,13 @@
     <div>
       <input id="logout_user" type="image" class="logout" src="logout.png"/>
 
-      <div class="tooltip">Computer Time Tracker
-          <span class="tooltiptext"> This app displays your daily computer usage time.
-            It  collects data on the computer state (active/idle) together with a timestamp of the recorded state and computer name information.
+      <div class="tooltip">Screen Time Tracker
+          <span class="tooltiptext"> This app displays your daily computer usage time. It is developed as part of the 'Sedentary Behavior at Work' project.
+            The app collects data about the computer state (active/idle) together with a timestamp of the recorded state and computer name information.
              Thank you for participating in our experiment.
            </span>
     </div>
-      <!-- <input id="about_app" type="image" class="tooltip"  src="about.png">
-        <span class="tooltiptext">Tooltip text </span>
-      </input> -->
+
 
       <canvas class="chart", id="myChart2" width="300" height="300"></canvas>
     </div>

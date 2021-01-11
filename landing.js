@@ -222,7 +222,7 @@ document.getElementById('logout_user').onclick = function(){
                   type: 'question',
                   buttons: ['Yes', 'No'],
                   title: 'Confirm',
-                  message: 'Quit Computer Time Tracker?'
+                  message: 'Quit Screen Time Tracker?'
               });
               choice.then(function(res){
                     // 0 for Yes

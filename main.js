@@ -14,7 +14,7 @@ const path = require('path')
 //required so that app can start on device launch
 var AutoLaunch = require('auto-launch');
 var autoLauncher = new AutoLaunch({
-    name: "electron-quick-start"
+    name: "Screen Time Tracker"
 });
 // Checking if autoLaunch is enabled, if not then enabling it.
 autoLauncher.isEnabled().then(function(isEnabled) {
