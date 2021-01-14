@@ -39,11 +39,12 @@ function createWindow () {
     show: false,
     frame: false,
     fullscreenable: false,
-    resizable: false
+    resizable: false,
+    skipTaskbar: true
   })
 
  mainWindow.loadFile('login.html')
- mainWindow.webContents.openDevTools()
+ // mainWindow.webContents.openDevTools()
  mainWindow.on('restore', () => {
      console.log('mainWindow restore')
      mainWindow.show();
@@ -88,7 +89,15 @@ app.whenReady().then(() => {
   })
 })
 
-app.dock.hide();
+//for windows
+if (process.platform !== 'darwin') {
+  mainWindow.setSkipTaskbar(true);
+}
+//for mac
+else{
+  app.dock.hide();
+}
+
 
 ipcMain.on('closed', _ => {
   console.log('renderer executed')

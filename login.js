@@ -4,7 +4,7 @@ const path = require('path');
 
 
 const jsonfile = path.join(__dirname,'./electronuser.json')
-
+var validEmails = ["henri@henri.com", "aart@aart.com", "michel@michel.com","simoski@simoski.com","test@test.com"];
 
 function validateEmail(email) {
   const re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
@@ -46,7 +46,7 @@ fs.readFile(jsonfile, 'utf8', (err, userString) => {
                   //check if its valid email
                   if (validateEmail(email) & validateEmail(confirmemail)) {
                     if (email ===  confirmemail ) {
-                        // alert("You have successfully logged in.");
+                      if (validEmails.indexOf(email) > -1) {
                         fs.readFile(jsonfile, 'utf8', (err, userString) => {
                             if (err) {
                                 console.log("Error reading file from disk:", err)
@@ -70,6 +70,36 @@ fs.readFile(jsonfile, 'utf8', (err, userString) => {
                                   console.log('Error parsing JSON string:', err)
                               }
                         })
+                          //In the array!
+                        } else {
+                          //Not in the array
+                          document.getElementById("login-error-msg").innerText = 'No account with this email found.'
+                          document.getElementById("login-error-msg").style.opacity = 1;
+                        }
+                        // alert("You have successfully logged in.");
+                        // fs.readFile(jsonfile, 'utf8', (err, userString) => {
+                        //     if (err) {
+                        //         console.log("Error reading file from disk:", err)
+                        //         return
+                        //     }
+                        //     try {
+                        //           var user = JSON.parse(userString)
+                        //           user.login = true
+                        //           user.username = email
+                        //           fs.writeFile(jsonfile, JSON.stringify(user), (err) => {
+                        //                   if (err)
+                        //                   {
+                        //                     console.log('Error writing file:', err)
+                        //                   }
+                        //                   else{
+                        //                     location.href = 'landing.html'
+                        //                   }
+                        //           })
+                        //         }
+                        //    catch(err) {
+                        //           console.log('Error parsing JSON string:', err)
+                        //       }
+                        // })
 
                     } else {
 

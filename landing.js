@@ -237,7 +237,7 @@ document.getElementById('logout_user').onclick = function(){
                         try {
                               var now = new Date();
                               var user = JSON.parse(userString)
-                              user.login = false
+                              user.login = true
                               user.username = user.username
                               user.appClosingTime = Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000)
                               // user.functionPlace = "ipcRenderer app-close"
@@ -517,35 +517,32 @@ function fillCards(states)
   minArray = intervalArray.intervals.slice(0,2)
 
   console.log('minArray', minArray)
+  var minAct = Math.round(minArray.reduce(function (sum, minArray) {return sum + minArray.activeUserTime;}, 0)/60)
+  var minInact = Math.round(minArray.reduce(function (sum, minArray) {return sum + minArray.notactiveUserTime + minArray.otherNonActive + minArray.computerTimeOFF;}, 0)/60)
+  while((minAct+minInact)!=30)
+  {
+    minInact = minInact - 1
+  }
+  document.getElementById('minActive').innerHTML = 'Active ' + minAct + 'min';
 
-  document.getElementById('minActive').innerHTML = 'Active ' + Math.round(minArray.reduce(function (sum, minArray) {return sum + minArray.activeUserTime;
-  }, 0)/60) + 'min';
+  document.getElementById('minInactive').innerHTML  ='Idle ' + minInact + 'min';
 
-  document.getElementById('minInactive').innerHTML  ='Idle ' + Math.round(minArray.reduce(function (sum, minArray) {
-      return sum + minArray.notactiveUserTime + minArray.otherNonActive + minArray.computerTimeOFF;
-  }, 0)/60) + 'min';
-
-
-  // document.getElementById('minOff').innerHTML = 'OFF ' +  Math.floor(minArray.reduce(function (sum, minArray) {
-  //     return sum + minArray.computerTimeOFF;
-  // }, 0)/60) + 'min';
 
   //HOURS
   hourArray = intervalArray.intervals.slice(0,8)
   console.log('hourArray', hourArray)
 
   // console.log('minArray', minArray)
-  document.getElementById('hoursActive').innerHTML = 'Active ' + Math.round(hourArray.reduce(function (sum, hourArray) {
-      return sum + hourArray.activeUserTime;
-  }, 0)/60) + 'min';
+  var hourAct = Math.round(hourArray.reduce(function (sum, hourArray) {return sum + hourArray.activeUserTime;}, 0)/60)
+  var hourInact = Math.round(hourArray.reduce(function (sum, hourArray) {return sum + hourArray.notactiveUserTime + hourArray.otherNonActive + hourArray.computerTimeOFF;}, 0)/60)
 
-  document.getElementById('hoursInactive').innerHTML  = 'Idle ' + Math.round(hourArray.reduce(function (sum, hourArray) {
-      return sum + hourArray.notactiveUserTime + hourArray.otherNonActive + hourArray.computerTimeOFF;
-  }, 0)/60) + 'min';
+  while((hourAct+hourInact)!=120)
+  {
+    hourInact = hourInact - 1
+  }
+  document.getElementById('hoursActive').innerHTML = 'Active ' + hourAct + 'min';
+  document.getElementById('hoursInactive').innerHTML  = 'Idle ' + hourInact + 'min';
 
-  // document.getElementById('hoursOff').innerHTML  =  'OFF ' +Math.floor(hourArray.reduce(function (sum, hourArray) {
-  //     return sum + hourArray.computerTimeOFF;
-  // }, 0)/60) + 'min';
 
 
   // TOTAL DAY SUMMARY
@@ -560,9 +557,6 @@ function fillCards(states)
       return sum + totalArray.notactiveUserTime + totalArray.otherNonActive + totalArray.computerTimeOFF;
   }, 0)/60) + 'min';
 
-  // document.getElementById('totalOff').innerHTML  =  'OFF ' + Math.floor(totalArray.reduce(function (sum, totalArray) {
-  //     return sum + totalArray.computerTimeOFF;
-  // }, 0)/60) + 'min';
 
 
 }
