@@ -4,7 +4,7 @@ const path = require('path');
 
 
 const jsonfile = path.join(__dirname,'./electronuser.json')
-var validEmails = ["henri@henri.com", "aart@aart.com", "michel@michel.com","simoski@simoski.com","test@test.com"];
+var validEmails = ["henri@henri.com", "aart@aart.com", "michel@michel.com","simoski@simoski.com","test@test.com","test1@test1.com","test2@test2.com","test3@test3.com"];
 
 function validateEmail(email) {
   const re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;

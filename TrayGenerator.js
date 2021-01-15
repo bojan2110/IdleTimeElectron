@@ -13,12 +13,18 @@ class TrayGenerator {
 
 
   getWindowPosition = () => {
-    // console.log('getWindowPosition')
-
     const windowBounds = this.mainWindow.getBounds();
     const trayBounds = this.tray.getBounds();
-    const x = Math.round(trayBounds.x + (trayBounds.width / 2) - (windowBounds.width / 2));
-    const y = Math.round(trayBounds.y + trayBounds.height);
+    var x
+    var y
+      if (process.platform !== 'darwin') {
+       x = Math.round(trayBounds.x + (trayBounds.width / 2) - (windowBounds.width / 2));
+       y = Math.round(trayBounds.y  - 715);
+    }
+    else{
+       x = Math.round(trayBounds.x + (trayBounds.width / 2) - (windowBounds.width / 2));
+       y = Math.round(trayBounds.y  + trayBounds.height);
+    }
     return { x, y };
   };
 
@@ -36,17 +42,29 @@ class TrayGenerator {
   toggleWindow = () => {
     // console.log('toggleWindow')
 
-    if (this.mainWindow.isVisible()) {
-
-       this.mainWindow.hide();
-       app.dock.hide();
-
-     } else {
-       this.showWindow();
-       app.dock.hide();
-       this.mainWindow.show();
-
+   if (this.mainWindow.isVisible()) {
+     //for windows
+     if (process.platform !== 'darwin') {
+       this.mainWindow.setSkipTaskbar(true);
      }
+     //for mac
+     else{
+       app.dock.hide();
+     }
+
+     this.mainWindow.hide();
+
+    } else {
+      this.showWindow();
+      if (process.platform !== 'darwin') {
+        this.mainWindow.setSkipTaskbar(true);
+      }
+      else{
+        app.dock.hide();
+      }
+      this.mainWindow.show();
+
+    }
   };
 
   closeWindow = () => {
