@@ -91,7 +91,7 @@ app.whenReady().then(() => {
 
 //for windows
 if (process.platform !== 'darwin') {
-  mainWindow.setSkipTaskbar(true);
+  // mainWindow.setSkipTaskbar(true);
 }
 //for mac
 else{
