@@ -8,6 +8,7 @@ const os = require('os');
 const { ipcRenderer } = window.require('electron');
 var Chart = require('chart.js');
 const dialog = require('electron').remote.dialog
+const app = require('electron').remote.app
 
 
 //global variables
@@ -15,13 +16,16 @@ var myChart
 var states
 
 //read the username first and then start the data collection
-const jsonfile = path.join(__dirname,'./electronuser.json')
+const jsonfile = path.join(app.getPath("userData"),'./uj1.json')
+
 fs.readFile(jsonfile, 'utf8', (err, userString) => {
     if (err) {
         console.log("Error reading json file from disk:", err)
         return
     }
     try {
+          console.log('USER DATA (Landing Screen): ', userString)
+
           const user = JSON.parse(userString)
           const computerName = os.hostname() + ' ' + os.type()
 
@@ -160,11 +164,13 @@ function ipcRendererEvents(username,computerName){
                             console.log('Error writing file:', err)
                           }
                           else{
+                            ipcRenderer.send('closed');
                             location.href = 'landing.html'
+
                           }
                   })
 
-                  ipcRenderer.send('closed');
+
                 }
            catch(err) {
                   console.log('Error parsing JSON string:', err)

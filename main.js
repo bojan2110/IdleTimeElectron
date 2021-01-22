@@ -13,23 +13,49 @@ const path = require('path')
 
 //required so that app can start on device launch
 var AutoLaunch = require('auto-launch');
-var autoLauncher = new AutoLaunch({
-    name: "Screen Time Tracker"
-});
+var autoLauncher
+if (process.platform !== 'darwin') {
+  //  autoLauncher = new AutoLaunch({
+  //     name: "screen-time-tracker-app",
+  //     path: app.getPath('exe'),
+  // });
+  const appFolder = path.dirname(process.execPath)
+  const updateExe = path.resolve(appFolder, '..', 'Update.exe')
+  const exeName = path.basename(process.execPath)
+
+  app.setLoginItemSettings({
+    openAtLogin: true,
+    path: updateExe,
+    args: [
+      '--processStart', `"${exeName}"`,
+      '--process-start-args', `"--hidden"`
+    ]
+  })
+
+}
+else{
+  autoLauncher = new AutoLaunch({
+     name: "screen-time-tracker-app"
+ });
+ autoLauncher.isEnabled().then(function(isEnabled) {
+   if (isEnabled) return;
+    autoLauncher.enable();
+ }).catch(function (err) {
+   throw err;
+ });
+
+}
+
+
 // Checking if autoLaunch is enabled, if not then enabling it.
-autoLauncher.isEnabled().then(function(isEnabled) {
-  if (isEnabled) return;
-   autoLauncher.enable();
-}).catch(function (err) {
-  throw err;
-});
+
 
 let mainWindow = null;
 
 function createWindow () {
   // Create the browser window.
  mainWindow = new BrowserWindow({
-    width: 350,
+    width: 850,
     height: 715,
     webPreferences: {
       nodeIntegration : true,
@@ -44,7 +70,7 @@ function createWindow () {
   })
 
  mainWindow.loadFile('login.html')
- // mainWindow.webContents.openDevTools()
+ mainWindow.webContents.openDevTools()
  mainWindow.on('restore', () => {
      console.log('mainWindow restore')
      mainWindow.show();
@@ -132,7 +158,7 @@ async function makePostRequest(username,computerName) {
 
 function saveCloseState(place){
   console.log('im in saveCloseState with place:', place)
-  const jsonfile = path.join(__dirname,'./electronuser.json')
+  const jsonfile = path.join(app.getPath("userData"),'./uj1.json')
 
   fs.readFile(jsonfile, 'utf8', (err, userString) => {
       if (err) {
@@ -141,7 +167,7 @@ function saveCloseState(place){
       }
       try {
             var now = new Date();
-            console.log('user login details: ',userString)
+            console.log('USER DATA (main): ',userString)
             var user = JSON.parse(userString)
             user.login = true
             user.username = user.username
@@ -152,12 +178,9 @@ function saveCloseState(place){
                     {
                       console.log('Error writing file:', err)
                     }
-                    // else{
-                    //   location.href = 'landing.html'
-                    // }
+
             })
-            //
-            // ipcRenderer.send('closed');
+
           }
      catch(err) {
             console.log('Error parsing JSON string:', err)
@@ -173,16 +196,14 @@ function saveCloseState(place){
 app.on('before-quit', function () {
   console.log('closing electron:before-quit')
 
-  saveCloseState("before-quit")
+  // saveCloseState("before-quit")
 
 })
 
 
 app.on('window-all-closed', function () {
   console.log('closing electron : window-all-closed')
-
-
-  saveCloseState("window-all-closed")
+  // saveCloseState("window-all-closed")
 
 
   if (process.platform !== 'darwin')
