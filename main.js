@@ -15,17 +15,12 @@ const path = require('path')
 var AutoLaunch = require('auto-launch');
 var autoLauncher
 if (process.platform !== 'darwin') {
-  //  autoLauncher = new AutoLaunch({
-  //     name: "screen-time-tracker-app",
-  //     path: app.getPath('exe'),
-  // });
-  const appFolder = path.dirname(process.execPath)
-  const updateExe = path.resolve(appFolder, '..', 'Update.exe')
+
   const exeName = path.basename(process.execPath)
 
   app.setLoginItemSettings({
     openAtLogin: true,
-    path: updateExe,
+    path: app.getPath('exe'),
     args: [
       '--processStart', `"${exeName}"`,
       '--process-start-args', `"--hidden"`
@@ -34,17 +29,16 @@ if (process.platform !== 'darwin') {
 
 }
 else{
-  autoLauncher = new AutoLaunch({
-     name: "screen-time-tracker-app"
- });
- autoLauncher.isEnabled().then(function(isEnabled) {
-   if (isEnabled) return;
-    autoLauncher.enable();
- }).catch(function (err) {
-   throw err;
- });
-
-}
+    autoLauncher = new AutoLaunch({
+       name: "screen-time-tracker-app"
+   });
+   autoLauncher.isEnabled().then(function(isEnabled) {
+     if (isEnabled) return;
+      autoLauncher.enable();
+   }).catch(function (err) {
+     throw err;
+   });
+ }
 
 
 // Checking if autoLaunch is enabled, if not then enabling it.
@@ -158,7 +152,7 @@ async function makePostRequest(username,computerName) {
 
 function saveCloseState(place){
   console.log('im in saveCloseState with place:', place)
-  const jsonfile = path.join(app.getPath("userData"),'./uj1.json')
+  const jsonfile = path.join(app.getPath("userData"),'./uj2.json')
 
   fs.readFile(jsonfile, 'utf8', (err, userString) => {
       if (err) {

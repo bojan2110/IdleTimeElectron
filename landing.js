@@ -16,7 +16,7 @@ var myChart
 var states
 
 //read the username first and then start the data collection
-const jsonfile = path.join(app.getPath("userData"),'./uj1.json')
+const jsonfile = path.join(app.getPath("userData"),'./uj2.json')
 
 fs.readFile(jsonfile, 'utf8', (err, userString) => {
     if (err) {

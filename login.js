@@ -5,9 +5,9 @@ const app = require('electron').remote.app
 
 
 
-const jsonfile = path.join(app.getPath("userData"),'./uj1.json')
+const jsonfile = path.join(app.getPath("userData"),'./uj2.json')
 console.log('login json file path: ', jsonfile )
-var validEmails = ["henri@henri.com", "aart@aart.com", "michel@michel.com","simoski@simoski.com","test@test.com"];
+var validEmails = ["henri@henri.com", "aart@aart.com", "michel@michel.com","simoski@simoski.com","new@new.com"];
 function validateEmail(email) {
   const re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
   return re.test(email);
