@@ -9,15 +9,35 @@ const { ipcRenderer } = window.require('electron');
 var Chart = require('chart.js');
 const dialog = require('electron').remote.dialog
 const app = require('electron').remote.app
+const packager = require('electron-packager')
+var options = {
+    'arch': 'x64',
+    'platform': 'darwin',
+    'dir': './',
+    'app-copyright': 'Bojan Simoski',
+    'app-version': '2.0.0',
+    'asar': true,
+    'icon': 'assets/icons/mac/icon.icns',
+    'name': 'screen-time-tracker-app ',
+    'out': './release-builds',
+    'overwrite': true,
+    'prune': true,
+    'version': '1.3.4'
+};
+async function bundleElectronApp(options) {
+  const appPaths = await packager(options)
+  console.log('landing Electron app bundles created')
+}
 
-
+bundleElectronApp(options)
+// old timestamp calculation: Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000)
 //global variables
 var myChart
 var states
 
 //read the username first and then start the data collection
-const jsonfile = path.join(app.getPath("userData"),'./uj2.json')
-
+const jsonfile = path.join(app.getPath("userData"),'./userdatastorage.json')
+console.log('jsonfile !!!',jsonfile)
 fs.readFile(jsonfile, 'utf8', (err, userString) => {
     if (err) {
         console.log("Error reading json file from disk:", err)
@@ -52,7 +72,7 @@ async function appStartPost(username,computerName) {
       {
         userid: username,
         deviceid: computerName,
-        collectionTime: Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000),
+        collectionTime: Math.floor(now.getTime()/1000),
         idleTime: 9
       }
     );
@@ -84,16 +104,18 @@ async function appClosePost(username,computerName,time) {
     }
 }
 
-function get_display_data(username,computerName)
-{
+function get_display_data(username,computerName){
   //make the start and end interval - take the whole day data (until the current point)
   var start = new Date();
   start.setHours(0,0,0,0);
+  //will get the current time
   var end = new Date();
-  var startdate = Math.floor((start.getTime() - start.getTimezoneOffset() *  60000)/1000)
-  var enddate = Math.floor((end.getTime() - end.getTimezoneOffset() *  60000)/1000)
+  // var startdate = Math.floor((start.getTime() - start.getTimezoneOffset() *  60000)/1000)
+  // var enddate = Math.floor((end.getTime() - end.getTimezoneOffset() *  60000)/1000)
 
-  //call the api
+  var startdate = Math.floor(start.getTime()/1000)
+  var enddate = Math.floor(end.getTime()/1000)
+  //api call for getting daily data
   var apiCall = 'https://health-iot.labs.vu.nl/api/idlestate/user/'+ username+'/device/'+ computerName
   +'/startdate/'+ startdate+'/enddate/'+ enddate
 
@@ -154,9 +176,9 @@ function ipcRendererEvents(username,computerName){
             try {
                   var now = new Date();
                   var user = JSON.parse(userString)
-                  user.login = true
+                  user.login = false
                   user.username = user.username
-                  user.appClosingTime = Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000)
+                  user.appClosingTime = Math.floor(now.getTime()/1000)
                   // user.functionPlace = "ipcRenderer app-close"
                   fs.writeFile(jsonfile, JSON.stringify(user), (err) => {
                           if (err)
@@ -243,16 +265,17 @@ document.getElementById('logout_user').onclick = function(){
                         try {
                               var now = new Date();
                               var user = JSON.parse(userString)
-                              user.login = true
+                              user.login = false
                               user.username = user.username
-                              user.appClosingTime = Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000)
+                              user.appClosingTime = Math.floor(now.getTime()/1000)
                               // user.functionPlace = "ipcRenderer app-close"
                               fs.writeFile(jsonfile, JSON.stringify(user), (err) => {
                                       if (err)
                                       {
-                                        console.log('Error writing file:', err)
+                                        console.log('logout error writing file:', err)
                                       }
                                       else{
+                                        console.log('logout user and writing to file')
                                         location.href = 'landing.html'
                                       }
                               })
@@ -410,9 +433,6 @@ function intervalSummary(states,start_interval,end_interval,count,firstState){
 
 }
 
-
-
-
 function transformIntervalArray(states){
 
   // array that will contain the calculated intervals
@@ -424,8 +444,10 @@ function transformIntervalArray(states){
 
   //get current timestamp
   var end = new Date();
-  var now = Math.floor((end.getTime() - end.getTimezoneOffset() *  60000)/1000)
+  var now = Math.floor(end.getTime()/1000)
   var dayStart
+
+  console.log(states)
   // sort the intervals as sometimes app OFF is saved after app ON
   states = states.sort(function(a, b) {
       return a.collectionTime - b.collectionTime;
@@ -435,10 +457,11 @@ function transformIntervalArray(states){
 
   var start = new Date();
   start.setHours(0,0,0,0);
-  dayStart = Math.floor((start.getTime() - start.getTimezoneOffset() *  60000)/1000)
+  dayStart = Math.floor(start.getTime()/1000)
 
 
-
+  console.log('transformIntervalArray dayStart', dayStart)
+  console.log('transformIntervalArray now', now)
   // these two are like interval slider start and end point
   var intervalEnd = now
   var intervalStart = intervalEnd - intervalLength
@@ -514,8 +537,7 @@ function transformIntervalArray(states){
 }
 
 
-function fillCards(states)
-{
+function fillCards(states){
   console.log('Fill Cards ')
   //first calculate the intervals based on total , will do slicing based on the card below
   intervalArray = transformIntervalArray(states)
@@ -611,11 +633,13 @@ function createDailyChart(states,label){
                   active_percentages.push(Math.floor((intervalArray[i].activeUserTime/intervalTime)*100))
                   // console.log('start', timestampToDate(intervalArray.intervals[i].startInterval), 'end', timestampToDate(intervalArray.intervals[i].endInterval))
                   // in milliseconds for chartjs
-                  timestamps.push((intervalArray[i].startInterval - 3600)*1000)
+                  // past version:             timestamps.push((intervalArray[0].startInterval -3600)*1000)
+                  timestamps.push((intervalArray[i].startInterval )*1000)
             }
 
             active_percentages.push(Math.floor((intervalArray[0].activeUserTime/intervalTime)*100))
-            timestamps.push((intervalArray[0].endInterval - 3600)*1000)
+            // past version:             timestamps.push((intervalArray[0].endInterval -3600)*1000)
+            timestamps.push((intervalArray[0].endInterval )*1000)
 
             console.log('active_percentages:',active_percentages)
             console.log('timestamps:',timestamps)
@@ -695,7 +719,7 @@ function postAdditionalComputerStates(username,computerName){
       {
         userid: username,
         deviceid: computerName,
-        collectionTime: Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000),
+        collectionTime: Math.floor(now.getTime()/1000),
         idleTime: 2
       }
     )
@@ -718,7 +742,7 @@ function postAdditionalComputerStates(username,computerName){
       {
         userid: username,
         deviceid: computerName,
-        collectionTime: Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000),
+        collectionTime: Math.floor(now.getTime()/1000),
         idleTime: 3
       }
     )
@@ -743,7 +767,7 @@ function postAdditionalComputerStates(username,computerName){
         {
           userid: username,
           deviceid: computerName,
-          collectionTime: Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000),
+          collectionTime: Math.floor(now.getTime()/1000),
           idleTime: 6
         }
       )
@@ -765,7 +789,7 @@ function postAdditionalComputerStates(username,computerName){
         {
           userid: username,
           deviceid: computerName,
-          collectionTime: Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000),
+          collectionTime: Math.floor(now.getTime()/1000),
           idleTime: 7
         }
       )
@@ -787,7 +811,7 @@ function postAdditionalComputerStates(username,computerName){
         {
           userid: username,
           deviceid: computerName,
-          collectionTime: Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000),
+          collectionTime: Math.floor(now.getTime()/1000),
           idleTime: 8
         }
       )
@@ -800,12 +824,11 @@ function postAdditionalComputerStates(username,computerName){
 
 }
 
-
 function monitorDailyState(username,computerName){
     console.log('Monitoring daily state...')
     // posting state changes
     // threshold in seconds for changing states
-    const idleThreshold = 20
+    const idleThreshold = 5
     var last_state = ''
     var current_state = ''
     var idleState = -1
@@ -826,14 +849,14 @@ function monitorDailyState(username,computerName){
         else
           idleState = 0
 
-        // console.log(date.format(now, 'YYYY/MM/DD HH:mm:ss') +' Current System State - ', st, idleState , Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000),username,computerName);
+        console.log(date.format(now, 'YYYY/MM/DD HH:mm:ss') +' Current System State - ', st, idleState ,Math.floor(now.getTime()/1000),username,computerName);
 
         if(last_state != current_state){
             axios.post('https://health-iot.labs.vu.nl/api/idlestate/post',
               {
                 userid: username,
                 deviceid: computerName,
-                collectionTime: Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000),
+                collectionTime: Math.floor(now.getTime()/1000),
                 idleTime: idleState
               }
             )

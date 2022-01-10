@@ -11,6 +11,7 @@ const TrayGenerator = require('./TrayGenerator');
 const {app, BrowserWindow } = electron
 const path = require('path')
 
+process.noAsar = true
 //required so that app can start on device launch
 var AutoLaunch = require('auto-launch');
 var autoLauncher
@@ -42,24 +43,23 @@ else{
 
 
 // Checking if autoLaunch is enabled, if not then enabling it.
-
-
 let mainWindow = null;
 
 function createWindow () {
   // Create the browser window.
  mainWindow = new BrowserWindow({
-    width: 850,
+    width: 650,
     height: 715,
     webPreferences: {
       nodeIntegration : true,
       worldSafeExecuteJavaScript: true,
-      enableRemoteModule: true
+      enableRemoteModule: true,
+      contextIsolation: false,
     },
     show: false,
     frame: false,
     fullscreenable: false,
-    resizable: false,
+    resizable: true,
     skipTaskbar: true
   })
 
@@ -130,7 +130,7 @@ ipcMain.on('closed', _ => {
 
 
 
-async function makePostRequest(username,computerName) {
+async function makePostRequest(username,computerName){
   try{
     now = new Date();
     let res = await axios.post('https://health-iot.labs.vu.nl/api/idlestate/event',
@@ -142,7 +142,7 @@ async function makePostRequest(username,computerName) {
       }
     );
 
-    console.log(res.data);
+    console.log('main makePostRequest',res.data);
   } catch (err) {
         // Handle Error Here
         console.error(err);
@@ -151,17 +151,17 @@ async function makePostRequest(username,computerName) {
 
 
 function saveCloseState(place){
-  console.log('im in saveCloseState with place:', place)
-  const jsonfile = path.join(app.getPath("userData"),'./uj2.json')
+  console.log('main saveCloseState', place)
+  const jsonfile = path.join(app.getPath("userData"),'./userdatastorage.json')
 
   fs.readFile(jsonfile, 'utf8', (err, userString) => {
       if (err) {
-          console.log("Error reading file from disk:", err)
+          console.log("main error reading file from disk:", err)
           return
       }
       try {
             var now = new Date();
-            console.log('USER DATA (main): ',userString)
+            console.log('main userData ',userString)
             var user = JSON.parse(userString)
             user.login = true
             user.username = user.username
@@ -170,14 +170,14 @@ function saveCloseState(place){
             fs.writeFile(jsonfile, JSON.stringify(user), (err) => {
                     if (err)
                     {
-                      console.log('Error writing file:', err)
+                      console.log('main userData error writing file:', err)
                     }
 
             })
 
           }
      catch(err) {
-            console.log('Error parsing JSON string:', err)
+            console.log('main userData error parsing JSON string:', err)
         }
   })
 
@@ -188,7 +188,7 @@ function saveCloseState(place){
 // explicitly with Cmd + Q.
 
 app.on('before-quit', function () {
-  console.log('closing electron:before-quit')
+  console.log('main closing electron:before-quit')
 
   // saveCloseState("before-quit")
 
@@ -196,7 +196,7 @@ app.on('before-quit', function () {
 
 
 app.on('window-all-closed', function () {
-  console.log('closing electron : window-all-closed')
+  console.log('main losing electron : window-all-closed')
   // saveCloseState("window-all-closed")
 
 

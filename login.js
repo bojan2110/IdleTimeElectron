@@ -3,15 +3,16 @@ const fs = require('fs')
 const path = require('path');
 const app = require('electron').remote.app
 
-
-
-const jsonfile = path.join(app.getPath("userData"),'./uj2.json')
+const jsonfile = path.join(app.getPath("userData"),'./userdatastorage.json')
 console.log('login json file path: ', jsonfile )
-var validEmails = ["henri@henri.com", "aart@aart.com", "michel@michel.com","simoski@simoski.com","new@new.com"];
+
+var validEmails = ["henri@henri.com", "aart@aart.com", "michel@michel.com","simoski@simoski.com","new@new.com","new1@new1.com"];
 function validateEmail(email) {
   const re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
   return re.test(email);
 }
+
+
 function wait(ms){
    var start = new Date().getTime();
    var end = start;
@@ -92,7 +93,7 @@ fs.access(jsonfile, (err) => {
                                                           }
                                                           else{
                                                             console.log('Saved login user ', user)
-                                                            wait(5000)
+                                                            // wait(5000)
                                                             location.href = 'landing.html'
                                                           }
                                                   })
