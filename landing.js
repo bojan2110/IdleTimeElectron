@@ -9,27 +9,27 @@ const { ipcRenderer } = window.require('electron');
 var Chart = require('chart.js');
 const dialog = require('electron').remote.dialog
 const app = require('electron').remote.app
-const packager = require('electron-packager')
-var options = {
-    'arch': 'x64',
-    'platform': 'darwin',
-    'dir': './',
-    'app-copyright': 'Bojan Simoski',
-    'app-version': '2.0.0',
-    'asar': true,
-    'icon': 'assets/icons/mac/icon.icns',
-    'name': 'screen-time-tracker-app ',
-    'out': './release-builds',
-    'overwrite': true,
-    'prune': true,
-    'version': '1.3.4'
-};
-async function bundleElectronApp(options) {
-  const appPaths = await packager(options)
-  console.log('landing Electron app bundles created')
-}
+// const packager = require('electron-packager')
+// var options = {
+//     'arch': 'x64',
+//     'platform': 'darwin',
+//     'dir': './',
+//     'app-copyright': 'Bojan Simoski',
+//     'app-version': '2.0.0',
+//     'asar': true,
+//     'icon': 'assets/icons/mac/icon.icns',
+//     'name': 'screen-time-tracker-app ',
+//     'out': './release-builds',
+//     'overwrite': true,
+//     'prune': true,
+//     'version': '1.3.4'
+// };
+// async function bundleElectronApp(options) {
+//   const appPaths = await packager(options)
+//   console.log('landing Electron app bundles created')
+// }
+// bundleElectronApp(options)
 
-bundleElectronApp(options)
 // old timestamp calculation: Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000)
 //global variables
 var myChart
