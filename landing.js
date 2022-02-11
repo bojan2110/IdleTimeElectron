@@ -113,18 +113,7 @@ function get_display_data(username,computerName){
       }
       else{
 
-          //deciding what data to obtain (based on highlighted card by the user). Total is the default
-          var label
-          if(getComputedStyle(document.querySelector('.mcard'), "boxShadow").boxShadow!='none')
-            label='min'
-          else if(getComputedStyle(document.querySelector('.hcard'), "boxShadow").boxShadow!='none')
-            label='hour'
-          else
-            label='total'
-
-
-          createDailyChart(states,label)
-          fillCards(states)
+          createDailyChart(states)
       }
 
 
@@ -138,11 +127,32 @@ function get_display_data(username,computerName){
     });
 }
 
+function register_user_interaction(username)
+{
+  now = new Date();
+  // var event = document.getElementById("event");
+  // event.innerText = ' The system is going to sleep'
+  axios.post('https://health-iot.labs.vu.nl/api/user/trackerapp/post',
+    {
+      userid: username,
+      collectionTime: Math.floor(now.getTime()/1000),
+    }
+  )
+  .then((response) => {
+    console.log('register_user_interaction POST OK', response);
+  }, (error) => {
+    console.log('register_user_interaction error');
+    console.log(error);
+  });
+
+}
+
 function ipcRendererEvents(username,computerName){
   console.log('User clicks icon...')
   //Display latest idle state data
   ipcRenderer.on('MSG_SHOW_PLOT', (event, data) => {
       get_display_data(username,computerName)
+      register_user_interaction(username)
   });
 
   ipcRenderer.on('app-close', _ => {
@@ -276,21 +286,6 @@ document.getElementById('logout_user').onclick = function(){
 
 
 
-document.getElementById('minutesCard').onclick = function(){
-  console.log('Creating 30-minute plot')
-  createDailyChart(states,'min')
-}
-
-document.getElementById('hoursCard').onclick = function(){
-  console.log('Creating 2-hours plot')
-  createDailyChart(states,'hour')
-}
-
-
-document.getElementById('totalCard').onclick = function(){
-  console.log('Creating total data plot')
-  createDailyChart(states,'total')
-}
 
 function intervalSummary(states,start_interval,end_interval,count,firstState){
 
@@ -749,96 +744,12 @@ function transformIntervalArray(states){
 }
 
 
-function fillCards(states){
-  console.log('Fill Cards ')
-  //first calculate the intervals based on total , will do slicing based on the card below
-  intervalArray = transformIntervalArray(states)
-  // intervalArrayTest = intervalArray = createIntervals(states,1)
-  // console.log('Fill Cards intervalArrayTest',intervalArrayTest)
-
-  //MINUTES
-  minArray = intervalArray.intervals.slice(0,2)
-
-  console.log('minArray', minArray)
-  var minAct = Math.round(minArray.reduce(function (sum, minArray) {return sum + minArray.activeUserTime;}, 0)/60)
-  var minInact = Math.round(minArray.reduce(function (sum, minArray) {return sum + minArray.notactiveUserTime + minArray.otherNonActive + minArray.computerTimeOFF;}, 0)/60)
-  while((minAct+minInact)!=30)
-  {
-    minInact = minInact - 1
-  }
-  document.getElementById('minActive').innerHTML = 'Active ' + minAct + 'min';
-
-  document.getElementById('minInactive').innerHTML  ='Idle ' + minInact + 'min';
-
-
-  //HOURS
-  hourArray = intervalArray.intervals.slice(0,8)
-  console.log('hourArray', hourArray)
-
-  // console.log('minArray', minArray)
-  var hourAct = Math.round(hourArray.reduce(function (sum, hourArray) {return sum + hourArray.activeUserTime;}, 0)/60)
-  var hourInact = Math.round(hourArray.reduce(function (sum, hourArray) {return sum + hourArray.notactiveUserTime + hourArray.otherNonActive + hourArray.computerTimeOFF;}, 0)/60)
-
-  while((hourAct+hourInact)!=120)
-  {
-    hourInact = hourInact - 1
-  }
-  document.getElementById('hoursActive').innerHTML = 'Active ' + hourAct + 'min';
-  document.getElementById('hoursInactive').innerHTML  = 'Idle ' + hourInact + 'min';
-
-
-
-  // TOTAL DAY SUMMARY
-  totalArray = intervalArray.intervals
-  console.log('totalArray', totalArray)
-
-  document.getElementById('totalActive').innerHTML = 'Active ' + Math.round(totalArray.reduce(function (sum, totalArray) {
-      return sum + totalArray.activeUserTime+1;
-  }, 0)/60) + 'min';
-
-  document.getElementById('totalInactive').innerHTML  ='Idle ' +  Math.round(totalArray.reduce(function (sum, totalArray) {
-      return sum + totalArray.notactiveUserTime + totalArray.otherNonActive + totalArray.computerTimeOFF;
-  }, 0)/60) + 'min';
-
-
-
-}
-
-function createDailyChart(states,label){
+function createDailyChart(states){
           intervalArray = transformIntervalArray(states)
-          // intervalArrayTest = intervalArray = createIntervals(states,1)
-          // console.log('createDaulyChart intervalArrayTest',intervalArrayTest)
-          // var ia
-          if(label == 'min'){
-            document.getElementById("minutesCard").style["boxShadow"] = "0 0px 8px 4px rgba(241, 158, 49, 0.4)";
-            document.getElementById("hoursCard").style["boxShadow"] = "none";
-            document.getElementById("totalCard").style["boxShadow"] = "none";
-            intervalArray = intervalArray.intervals.slice(0,2)
+          //only last two hours
+          intervalArray = intervalArray.intervals.slice(0,8)
 
-            // console.log('AI',intervalArray.intervals.length)
-
-          }
-
-          else if(label == 'hour'){
-            document.getElementById("hoursCard").style["boxShadow"] = "0 0px 8px 4px rgba(241, 158, 49, 0.4)";
-            document.getElementById("minutesCard").style["boxShadow"] = "none";
-            document.getElementById("totalCard").style["boxShadow"] = "none";
-            // console.log('AI',ia.intervals)
-            intervalArray = intervalArray.intervals.slice(0,8)
-
-
-          }
-
-          else if(label == 'total'){
-            document.getElementById("totalCard").style["boxShadow"] = "0 0px 8px 4px rgba(241, 158, 49, 0.4)";
-            document.getElementById("hoursCard").style["boxShadow"] = "none";
-            document.getElementById("minutesCard").style["boxShadow"] = "none";
-
-            intervalArray = intervalArray.intervals
-          }
-
-
-          document.getElementById('lastUpdate').innerHTML = 'Last Updated: ' + timestampToDate(states[states.length - 1].collectionTime)
+          document.getElementById('lastUpdate').innerHTML = 'Last Updated: ' + timestampToDate(states[states.length - 1].collectionTime+3600)
           console.log('Plotting Interval Array', intervalArray)
             // For chart 2
             var intervalTime = 60*15

@@ -5,8 +5,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'">
-  <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src https://health-iot.labs.vu.nl">
+  <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'self; connect-src https://health-iot.labs.vu.nl'">
   <title>Computer Time Tracker</title>
   <link rel="stylesheet" href="login.css">
   <script defer src="./login.js"></script>
@@ -16,14 +16,14 @@
   <main id="main-holder">
 
     <div id="login-error-msg-holder">
-      <p id="login-error-msg">Error email not match</p>
+      <p id="login-error-msg">Error: RegistrationID not match</p>
     </div>
 
     <form id="login-form">
       <h3 id="login-header">Screen Time Tracker</h3>
       <img  src="sitting1.png" class="image" alt="CTT Icon">
-      <input type="text" name="email" id="email-field" class="login-form-field" placeholder="Email">
-      <input type="text" name="confirmemail" id="confirm-email-field" class="login-form-field" placeholder="Confirm Email">
+      <input type="text" name="email" id="email-field" class="login-form-field" placeholder="Insert RegistrationID">
+      <input type="text" name="confirmemail" id="confirm-email-field" class="login-form-field" placeholder="Confirm RegistrationID">
       <input type="submit" value="Login" id="login-form-submit">
     </form>
 

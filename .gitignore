@@ -1,6 +1,4 @@
 /node_modules
-/assets
 /release-builds
 package-lock.json
-package.json
 electronuser.js

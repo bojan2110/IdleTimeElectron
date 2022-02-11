@@ -48,8 +48,8 @@ let mainWindow = null;
 function createWindow () {
   // Create the browser window.
  mainWindow = new BrowserWindow({
-    width: 650,
-    height: 715,
+    width: 450,
+    height: 500,
     webPreferences: {
       nodeIntegration : true,
       worldSafeExecuteJavaScript: true,
@@ -59,11 +59,12 @@ function createWindow () {
     show: false,
     frame: false,
     fullscreenable: false,
-    resizable: true,
+    resizable: false,
     skipTaskbar: true
   })
 
  mainWindow.loadFile('login.html')
+ //comment out if you want to debug:
  mainWindow.webContents.openDevTools()
  mainWindow.on('restore', () => {
      console.log('mainWindow restore')
@@ -165,7 +166,7 @@ function saveCloseState(place){
             var user = JSON.parse(userString)
             user.login = true
             user.username = user.username
-            user.appClosingTime = Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000)
+            user.appClosingTime = Math.floor(now.getTime()/1000)
             // user.functionPlace = place
             fs.writeFile(jsonfile, JSON.stringify(user), (err) => {
                     if (err)
