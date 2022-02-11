@@ -9,26 +9,6 @@ const { ipcRenderer } = window.require('electron');
 var Chart = require('chart.js');
 const dialog = require('electron').remote.dialog
 const app = require('electron').remote.app
-// const packager = require('electron-packager')
-// var options = {
-//     'arch': 'x64',
-//     'platform': 'darwin',
-//     'dir': './',
-//     'app-copyright': 'Bojan Simoski',
-//     'app-version': '2.0.0',
-//     'asar': true,
-//     'icon': 'assets/icons/mac/icon.icns',
-//     'name': 'screen-time-tracker-app ',
-//     'out': './release-builds',
-//     'overwrite': true,
-//     'prune': true,
-//     'version': '1.3.4'
-// };
-// async function bundleElectronApp(options) {
-//   const appPaths = await packager(options)
-//   console.log('landing Electron app bundles created')
-// }
-// bundleElectronApp(options)
 
 // old timestamp calculation: Math.floor((now.getTime() - now.getTimezoneOffset() *  60000)/1000)
 //global variables
@@ -432,6 +412,239 @@ function intervalSummary(states,start_interval,end_interval,count,firstState){
                                      "computerTimeON":computerTimeON,"computerTimeOFF":computerTimeOFF,"states":states,"statesLength":totalStates,"intervalStartedState":intervalStartedState, "lastState":currentState}
 
 }
+//from dashboard
+function getIntervalSummary(states,start_interval,end_interval,lastState,slidingWindowMinutes){
+    var idleIntervalThreshold = 0.3
+  // console.log('getIntervalSummary function')
+    var currentState = lastState
+
+    var startInterval = start_interval
+    var endInterval = end_interval
+    //recreating idle timeline
+    // total active computer usage time
+    var activeUserTime=0
+    //total nonactive computer usage time
+    var notactiveUserTime=0
+    //total other nonactive
+    var otherNonActive = 0
+
+    var iLength = 0
+    var computerTimeON = 0
+    var computerTimeOFF = 0
+
+    var totalStates = 0
+
+    //empty interval - in this case only take the last state and add the whole interval length to it
+    if(states.length == 0)
+    {
+      iLength = slidingWindowMinutes*60
+
+      if(currentState == 1)
+      {
+          activeUserTime = activeUserTime + iLength
+          computerTimeON = computerTimeON + iLength
+      }
+      else if(currentState == 0)
+        {
+          notactiveUserTime = notactiveUserTime + iLength
+          computerTimeON = computerTimeON + iLength
+        }
+      else if(currentState = 10)
+        {
+          computerTimeOFF = computerTimeOFF + iLength
+        }
+      else
+        {
+          otherNonActive = otherNonActive + iLength
+          computerTimeON = computerTimeON + iLength
+        }
+    }
+    //in case there are states with actual values in the states array
+    else {
+          totalStates = states.length
+          // console.log('total data intervals', totalStates)
+
+          for (i=0,l=states.length; i<l; i++){
+              // console.log('Step:', i)
+              // console.log('current state', currentState)
+              // console.log('next state', intervals[i].idleTime)
+
+
+              // dont we get an empty length in case startInterval -- states[0].collectionTime in the first step?
+              endInterval = states[i].collectionTime
+              iLength = endInterval - startInterval
+              // console.log('length', intervalLength)
+
+              if(currentState == 1)
+              {
+                  activeUserTime = activeUserTime + iLength
+                  computerTimeON = computerTimeON + iLength
+              }
+              else if(currentState == 0)
+                {
+                  notactiveUserTime = notactiveUserTime + iLength
+                  computerTimeON = computerTimeON + iLength
+                }
+              else if(currentState = 10)
+                {
+                  computerTimeOFF = computerTimeOFF + iLength
+                }
+              else
+                {
+                  otherNonActive = otherNonActive + iLength
+                  computerTimeON = computerTimeON + iLength
+                }
+
+              startInterval = endInterval
+              currentState = states[i].idleTime
+          }
+
+          //for the last point - 'current state'
+          iLength = end_interval - startInterval
+          // console.log('length', intervalLength)
+
+          if(currentState == 1)
+          {
+              activeUserTime = activeUserTime + iLength
+              computerTimeON = computerTimeON + iLength
+          }
+          else if(currentState == 0)
+          {
+              notactiveUserTime = notactiveUserTime + iLength
+              computerTimeON = computerTimeON + iLength
+          }
+          else if(currentState = 10)
+          {
+              computerTimeOFF = computerTimeOFF + iLength
+          }
+          else
+          {
+              otherNonActive = otherNonActive + iLength
+              computerTimeON = computerTimeON + iLength
+          }
+    }
+
+
+
+
+  // inferredState  0 idle (off screen), 1 active (on screen)
+
+  var inferredState = 0
+  var electronState = -1
+  // this means that this is a minute when the computer was turned on/off
+  //this logic is limited to a slidingWindowMinutes = 1
+
+  if(computerTimeOFF == 60)
+      {
+        inferedState = 0
+        electronState = -1
+      }
+  else if(activeUserTime/notactiveUserTime < idleIntervalThreshold)
+      {
+        inferredState = 0
+        electronState = 0
+      }
+  else
+      {
+        inferredState = 1
+        electronState = 1
+      }
+
+
+  return {"interval_begin" : start_interval, "interval_end" : end_interval,
+                                     "activeUserTime":activeUserTime,"notactiveUserTime":notactiveUserTime,"inferredState":inferredState,"otherNonActive":otherNonActive,
+                                     "computerTimeON":computerTimeON,"computerTimeOFF":computerTimeOFF,"states":states,"statesLength":totalStates,"lastState":currentState, "electronState": electronState}
+
+}
+//from dashboard
+function createIntervals(states,slidingWindowMinutes,sTime,eTime){
+
+    // array that will contain the calculated intervals
+      var intervalArray = {
+          intervals: []
+      };
+
+      //interval length in seconds
+      var intervalLength = slidingWindowMinutes*60
+
+      // sort the intervals as sometimes app OFF is saved after app ON
+      states = states.sort(function(a, b) {  return a.collectionTime - b.collectionTime;});
+
+      var currentTime
+      var dayStart
+
+        var start = new Date();
+        start.setHours(0,0,0,0);
+        dayStart =  Math.floor(start.getTime()/1000)
+
+
+
+
+        var end = new Date();
+        currentTime = Math.floor(end.getTime())/1000;
+
+
+
+      console.log('sTime dayStart eTime currentTime', sTime, dayStart, eTime, currentTime)
+
+        // these two are like interval slider start and end point
+      var intervalStart = dayStart
+      var intervalEnd = intervalStart + intervalLength - 1
+
+      console.log('createIntervals STATES ', states)
+
+      //only if there are states to be calculated in the day
+      if(states.length != 0)
+      {
+
+            while(intervalStart<=currentTime){
+              //valid for the last interval in case that it exceed the currentTime
+              if(intervalEnd>currentTime)
+              {
+                    intervalEnd = currentTime
+              }
+
+              var slicedStates = states.filter(function (el) { return el.collectionTime >= intervalStart && el.collectionTime <= intervalEnd });
+              //there is data in the sliced interval
+              if(slicedStates.length !=0)
+                 slicedStates = slicedStates.sort(function(a, b) { return a.collectionTime - b.collectionTime;});
+
+              // the initial calculation
+              if(intervalArray.intervals.length == 0){
+                //the first sliced interval is empty - can happen very often
+                if(slicedStates.length == 0)
+                {
+                  intervalArray.intervals.push(getIntervalSummary(slicedStates,intervalStart,intervalEnd,10,slidingWindowMinutes))
+
+                }
+                else{
+                    intervalArray.intervals.push(getIntervalSummary(slicedStates,intervalStart,intervalEnd,states[0].idleTime,slidingWindowMinutes))
+
+                }
+
+              }
+              //intervalArray has already some calculated intervals
+              else{
+                    //the first state is the last state of the previous interval : intervalArray.intervals[intervalArray.intervals.length-1].lastState
+                    intervalArray.intervals.push(getIntervalSummary(slicedStates,intervalStart,intervalEnd, intervalArray.intervals[intervalArray.intervals.length-1].lastState, slidingWindowMinutes))
+
+              }
+
+                  intervalEnd = intervalEnd + intervalLength
+                  intervalStart = intervalStart + intervalLength
+            }
+
+
+      }
+      else{
+
+        console.log('No States Today')
+      }
+
+    return intervalArray
+
+
+  }
 
 function transformIntervalArray(states){
 
@@ -460,8 +673,7 @@ function transformIntervalArray(states){
   dayStart = Math.floor(start.getTime()/1000)
 
 
-  console.log('transformIntervalArray dayStart', dayStart)
-  console.log('transformIntervalArray now', now)
+  console.log('transformIntervalArray dayStart now', dayStart,now)
   // these two are like interval slider start and end point
   var intervalEnd = now
   var intervalStart = intervalEnd - intervalLength
@@ -541,6 +753,9 @@ function fillCards(states){
   console.log('Fill Cards ')
   //first calculate the intervals based on total , will do slicing based on the card below
   intervalArray = transformIntervalArray(states)
+  // intervalArrayTest = intervalArray = createIntervals(states,1)
+  // console.log('Fill Cards intervalArrayTest',intervalArrayTest)
+
   //MINUTES
   minArray = intervalArray.intervals.slice(0,2)
 
@@ -591,6 +806,8 @@ function fillCards(states){
 
 function createDailyChart(states,label){
           intervalArray = transformIntervalArray(states)
+          // intervalArrayTest = intervalArray = createIntervals(states,1)
+          // console.log('createDaulyChart intervalArrayTest',intervalArrayTest)
           // var ia
           if(label == 'min'){
             document.getElementById("minutesCard").style["boxShadow"] = "0 0px 8px 4px rgba(241, 158, 49, 0.4)";
