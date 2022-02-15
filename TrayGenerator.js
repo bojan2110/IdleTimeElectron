@@ -18,8 +18,8 @@ class TrayGenerator {
     var x
     var y
       if (process.platform !== 'darwin') {
-       x = Math.round(trayBounds.x + (trayBounds.width / 2) - (windowBounds.width / 2));
-       y = Math.round(trayBounds.y  - 715);
+       x = Math.round(trayBounds.x + (trayBounds.width / 2) - (windowBounds.width / 2) - 50);
+       y = Math.round(trayBounds.y  - 500);
     }
     else{
        x = Math.round(trayBounds.x + (trayBounds.width / 2) - (windowBounds.width / 2));

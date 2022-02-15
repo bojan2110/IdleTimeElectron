@@ -11,7 +11,7 @@ const TrayGenerator = require('./TrayGenerator');
 const {app, BrowserWindow } = electron
 const path = require('path')
 
-process.noAsar = true
+//process.noAsar = true
 //required so that app can start on device launch
 var AutoLaunch = require('auto-launch');
 var autoLauncher
@@ -65,7 +65,7 @@ function createWindow () {
 
  mainWindow.loadFile('login.html')
  //comment out if you want to debug:
- mainWindow.webContents.openDevTools()
+ // mainWindow.webContents.openDevTools()
  mainWindow.on('restore', () => {
      console.log('mainWindow restore')
      mainWindow.show();
