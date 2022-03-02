@@ -41,7 +41,7 @@ fs.access(jsonfile, (err) => {
                     try {
                           var user = JSON.parse(userString)
 
-                          if(user.login)
+                          if(user.login || user.username.length!=0)
                           {
                             location.href = 'landing.html'
                           }
@@ -152,7 +152,7 @@ fs.access(jsonfile, (err) => {
                 console.log('USER DATA (Login Screen): ', userString)
                 var user = JSON.parse(userString)
 
-                if(user.login)
+                if(user.login || user.username.length!=0)
                 {
                   location.href = 'landing.html'
                 }

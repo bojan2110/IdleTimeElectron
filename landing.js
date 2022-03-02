@@ -233,6 +233,23 @@ function timestampToDate(timestamp){
   return convdataTime
 }
 
+
+document.getElementById('minimize').onclick = function(){
+//
+if (process.platform !== 'darwin') {
+  this.mainWindow.setSkipTaskbar(true);
+}
+//for mac
+else{
+    console.log('minimize app',app)
+
+    // console.log('minimize app.dock',app1.dock)
+    electron.getCurrentWindow().minimize()
+    app.dock.hide();
+}
+
+
+}
 document.getElementById('logout_user').onclick = function(){
   var choice = dialog.showMessageBox(
               electron.getCurrentWindow(),
@@ -289,7 +306,6 @@ document.getElementById('logout_user').onclick = function(){
 
 function intervalSummary(states,start_interval,end_interval,count,firstState){
 
-  //for debugging purposes
   var intervalStartedState = firstState
 
 
