@@ -13,8 +13,6 @@ const path = require('path')
 
 //process.noAsar = true
 //required so that app can start on device launch
-var AutoLaunch = require('easy-auto-launch');
-var autoLauncher
 if (process.platform !== 'darwin') {
 
   const exeName = path.basename(process.execPath)
@@ -29,17 +27,7 @@ if (process.platform !== 'darwin') {
   })
 }
 else{
-    autoLauncher = new AutoLaunch({
-       name: "screen-time-tracker-app"
-   });
-
-   autoLauncher.enable()
-   autoLauncher.isEnabled().then(function(isEnabled) {
-     if (isEnabled) return;
-      autoLauncher.enable();
-   }).catch(function (err) {
-     throw err;
-   });
+  app.setLoginItemSettings({ openAtLogin: true });
  }
 
 
@@ -66,7 +54,7 @@ function createWindow () {
 
  mainWindow.loadFile('login.html')
  //comment out if you want to debug:
- mainWindow.webContents.openDevTools()
+ // mainWindow.webContents.openDevTools()
  mainWindow.on('restore', () => {
      console.log('mainWindow restore')
      mainWindow.show();

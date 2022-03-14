@@ -1,4 +1,4 @@
-# Screen Time Tracker
+# Screen Observer
 
 
 This is a minimal Electron JS application for tracking computer screen time. It displays daily computer usage times and saves the computer state data to private VU servers. Developed as part of the Sedentary Behaviour at Work project. The app skeleton is based on the

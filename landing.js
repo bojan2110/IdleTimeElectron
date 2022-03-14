@@ -33,6 +33,7 @@ fs.readFile(jsonfile, 'utf8', (err, userString) => {
           appClosePost(user.username,computerName,user.appClosingTime)
           appStartPost(user.username,computerName)
           //this will set the interval
+          postUpdateApp(user.username,computerName)
           monitorDailyState(user.username,computerName)
           postAdditionalComputerStates(user.username,computerName)
           get_display_data(user.username,computerName)
@@ -235,19 +236,22 @@ function timestampToDate(timestamp){
 
 
 document.getElementById('minimize').onclick = function(){
+// //
+// if (process.platform !== 'darwin') {
+//   electron.getCurrentWindow().setSkipTaskbar(true);
+// }
+// //for mac
+// else{
+//     console.log('minimize app',app)
 //
-if (process.platform !== 'darwin') {
-  this.mainWindow.setSkipTaskbar(true);
-}
-//for mac
-else{
-    console.log('minimize app',app)
+//     // console.log('minimize app.dock',app1.dock)
+//     // electron.getCurrentWindow().minimize()
+//     electron.getCurrentWindow().hide();
+//
+//     // app.dock.hide();
+// }
 
-    // console.log('minimize app.dock',app1.dock)
-    electron.getCurrentWindow().minimize()
-    app.dock.hide();
-}
-
+electron.getCurrentWindow().hide();
 
 }
 document.getElementById('logout_user').onclick = function(){
@@ -257,7 +261,7 @@ document.getElementById('logout_user').onclick = function(){
                   type: 'question',
                   buttons: ['Yes', 'No'],
                   title: 'Confirm',
-                  message: 'Quit Screen Time Tracker?'
+                  message: 'Quit Screen Observer?'
               });
               choice.then(function(res){
                     // 0 for Yes
@@ -965,6 +969,30 @@ function postAdditionalComputerStates(username,computerName){
         console.log(error);
       });
   });
+
+}
+
+function postUpdateApp(username,computerName){
+  console.log('postUpdateApp called')
+  //every 20 minutes posts an update that the app is actively running
+  setInterval(function(){
+          now = new Date();
+          axios.post('https://health-iot.labs.vu.nl/api/idlestate/post',
+            {
+              userid: username,
+              deviceid: computerName,
+              collectionTime: Math.floor(now.getTime()/1000),
+              idleTime: 11
+            }
+          )
+          .then((response) => {
+            console.log('New postUpdateApp POST');
+          }, (error) => {
+            console.log(error);
+          });
+
+
+    }, 1000*60*20);
 
 }
 
